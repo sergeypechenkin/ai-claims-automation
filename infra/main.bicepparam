@@ -1,8 +1,6 @@
 using './main.bicep'
 
-// Required parameters
-param functionAppName = 'func-ai-claims-automation'
+param functionAppName = 'ai-claims-automation-func'
 param location = 'North Europe'
-
-// Optional parameters - using defaults from template
 param hostingPlanSku = 'FC1'
+param applicationInsightsName = 'ai-claims-automation-func-insights'

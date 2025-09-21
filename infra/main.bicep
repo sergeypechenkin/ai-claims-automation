@@ -66,9 +66,9 @@ module functionApp 'br/public:avm/res/web/site:0.11.0' = {
     kind: 'functionapp,linux'
     serverFarmResourceId: hostingPlan.id
     
-    // Storage account configuration
+    // Storage account configuration - Fixed for Flex Consumption
     storageAccountResourceId: storageAccount.id
-    storageAccountUseIdentityAuthentication: true
+    storageAccountUseIdentityAuthentication: false // Set to false initially for Flex Consumption
     
     // Application Insights
     appInsightResourceId: applicationInsights.id
@@ -79,24 +79,26 @@ module functionApp 'br/public:avm/res/web/site:0.11.0' = {
       systemAssigned: true
     }
     
-    // Site configuration
+    // Site configuration - Updated for Flex Consumption
     siteConfig: {
       pythonVersion: '3.12'
       linuxFxVersion: 'Python|3.12'
-      alwaysOn: false // Not applicable for Flex Consumption
       ftpsState: 'FtpsOnly'
       minTlsVersion: '1.2'
       use32BitWorkerProcess: false
+      scmMinTlsVersion: '1.2'
     }
     
-    // App settings
+    // App settings - Fixed storage connection
     appSettingsKeyValuePairs: {
-      AzureWebJobsStorage__accountName: storageAccount.name
+      AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
       FUNCTIONS_EXTENSION_VERSION: '~4'
       FUNCTIONS_WORKER_RUNTIME: 'python'
+      WEBSITE_CONTENTAZUREFILECONNECTIONSTRING: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
       WEBSITE_CONTENTSHARE: functionAppName
       SCM_DO_BUILD_DURING_DEPLOYMENT: 'true'
       ENABLE_ORYX_BUILD: 'true'
+      APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
     }
   }
 }
