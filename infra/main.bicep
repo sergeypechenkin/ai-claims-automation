@@ -57,29 +57,14 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
-// Create Function App using Azure Verified Module
-module functionApp 'br/public:avm/res/web/site:0.11.0' = {
-  name: 'functionAppDeployment'
-  params: {
-    name: functionAppName
-    location: location
-    kind: 'functionapp,linux'
-    serverFarmResourceId: hostingPlan.id
-    
-    // Storage account configuration - Fixed for Flex Consumption
-    storageAccountResourceId: storageAccount.id
-    storageAccountUseIdentityAuthentication: false // Set to false initially for Flex Consumption
-    
-    // Application Insights
-    appInsightResourceId: applicationInsights.id
-    
-    // Security configurations
+// Create Function App directly instead of using AVM module
+resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
+  name: functionAppName
+  location: location
+  kind: 'functionapp,linux'
+  properties: {
+    serverFarmId: hostingPlan.id
     httpsOnly: true
-    managedIdentities: {
-      systemAssigned: true
-    }
-    
-    // Site configuration - Updated for Flex Consumption
     siteConfig: {
       pythonVersion: '3.12'
       linuxFxVersion: 'Python|3.12'
@@ -87,19 +72,44 @@ module functionApp 'br/public:avm/res/web/site:0.11.0' = {
       minTlsVersion: '1.2'
       use32BitWorkerProcess: false
       scmMinTlsVersion: '1.2'
+      appSettings: [
+        {
+          name: 'AzureWebJobsStorage'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
+        }
+        {
+          name: 'FUNCTIONS_EXTENSION_VERSION'
+          value: '~4'
+        }
+        {
+          name: 'FUNCTIONS_WORKER_RUNTIME'
+          value: 'python'
+        }
+        {
+          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
+        }
+        {
+          name: 'WEBSITE_CONTENTSHARE'
+          value: functionAppName
+        }
+        {
+          name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
+          value: 'true'
+        }
+        {
+          name: 'ENABLE_ORYX_BUILD'
+          value: 'true'
+        }
+        {
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: applicationInsights.properties.ConnectionString
+        }
+      ]
     }
-    
-    // App settings - Fixed storage connection
-    appSettingsKeyValuePairs: {
-      AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
-      FUNCTIONS_EXTENSION_VERSION: '~4'
-      FUNCTIONS_WORKER_RUNTIME: 'python'
-      WEBSITE_CONTENTAZUREFILECONNECTIONSTRING: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=core.windows.net'
-      WEBSITE_CONTENTSHARE: functionAppName
-      SCM_DO_BUILD_DURING_DEPLOYMENT: 'true'
-      ENABLE_ORYX_BUILD: 'true'
-      APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString
-    }
+  }
+  identity: {
+    type: 'SystemAssigned'
   }
 }
 
@@ -109,19 +119,19 @@ resource storageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-
   scope: storageAccount
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b') // Storage Blob Data Owner
-    principalId: functionApp.outputs.systemAssignedMIPrincipalId
+    principalId: functionApp.identity.principalId
     principalType: 'ServicePrincipal'
   }
 }
 
 @description('The name of the deployed function app.')
-output functionAppName string = functionApp.outputs.name
+output functionAppName string = functionApp.name
 
 @description('The resource ID of the deployed function app.')
-output functionAppResourceId string = functionApp.outputs.resourceId
+output functionAppResourceId string = functionApp.id
 
 @description('The default hostname of the deployed function app.')
-output functionAppHostname string = functionApp.outputs.defaultHostname
+output functionAppHostname string = functionApp.properties.defaultHostName
 
 @description('The Application Insights connection string.')
 output applicationInsightsConnectionString string = applicationInsights.properties.ConnectionString
