@@ -7,11 +7,11 @@ on:
     branches: [ main ]
 
 env:
-  AZURE_FUNCTIONAPP_NAME: 'func-ai-claims-automation'
+  AZURE_FUNCTIONAPP_NAME: 'ai-claims-automation-func'
   AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'
   PYTHON_VERSION: '3.12'
   AZURE_RESOURCE_GROUP: 'rg-ai-claims-automation'
-  AZURE_LOCATION: 'North Europe'
+  AZURE_LOCATION: 'East US'
 
 jobs:
   deploy-infrastructure:
