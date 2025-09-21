@@ -46,17 +46,7 @@ az ad sp create-for-rbac \
   --role contributor \
   --scopes /subscriptions/YOUR_SUBSCRIPTION_ID
 
-# Configure federated credentials
-az ad app federated-credential create \
-  --id YOUR_APP_ID \
-  --parameters '{
-    "name": "GitHubActions",
-    "issuer": "https://token.actions.githubusercontent.com",
-    "subject": "repo:YOUR_GITHUB_USERNAME/ai-claims-automation:ref:refs/heads/main",
-    "description": "GitHub Actions",
-    "audiences": ["api://AzureADTokenExchange"]
-  }'
-```
+
 
 ### 2. GitHub Secrets Configuration
 
@@ -78,35 +68,6 @@ env:
   AZURE_LOCATION: 'East US'  # Or your preferred region
 ```
 
-## Azure DevOps Setup
-
-### 1. Service Connection
-
-1. Go to **Project Settings** > **Service connections**
-2. Create **New service connection** > **Azure Resource Manager**
-3. Choose **Service principal (automatic)** or **Service principal (manual)**
-4. Configure with appropriate permissions
-
-### 2. Variable Groups
-
-Create a variable group with these variables:
-
-- `azureSubscription`: Name of your service connection
-- `functionAppName`: Your function app name
-- `resourceGroupName`: Your resource group name
-- `pythonVersion`: `3.12`
-
-### 3. Pipeline Setup
-
-Use the provided `azure-pipelines.yml` file and update the variables section:
-
-```yaml
-variables:
-  azureSubscription: 'your-service-connection-name'
-  functionAppName: 'your-function-app-name'
-  vmImageName: 'ubuntu-latest'
-  pythonVersion: '3.12'
-```
 
 ## Infrastructure as Code
 
