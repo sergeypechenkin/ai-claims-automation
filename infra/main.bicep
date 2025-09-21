@@ -65,6 +65,26 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   properties: {
     serverFarmId: hostingPlan.id
     httpsOnly: true
+    functionAppConfig: {
+      deployment: {
+        storage: {
+          type: 'blobContainer'
+          value: '${storageAccount.properties.primaryEndpoints.blob}deployments'
+          authentication: {
+            type: 'StorageAccountConnectionString'
+            storageAccountConnectionStringName: 'AzureWebJobsStorage'
+          }
+        }
+      }
+      scaleAndConcurrency: {
+        maximumInstanceCount: 100
+        instanceMemoryMB: 2048
+      }
+      runtime: {
+        name: 'python'
+        version: '3.12'
+      }
+    }
     siteConfig: {
       pythonVersion: '3.12'
       linuxFxVersion: 'Python|3.12'
@@ -122,5 +142,14 @@ output functionAppName string = functionApp.name
 
 @description('The resource ID of the deployed function app.')
 output functionAppResourceId string = functionApp.id
+
+@description('The default hostname of the deployed function app.')
+output functionAppHostname string = functionApp.properties.defaultHostName
+
+@description('The Application Insights connection string.')
+output applicationInsightsConnectionString string = applicationInsights.properties.ConnectionString
+
+@description('The system-assigned managed identity principal ID.')
+output managedIdentityPrincipalId string = functionApp.identity.principalId
 
 
