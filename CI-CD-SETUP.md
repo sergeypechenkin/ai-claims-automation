@@ -28,35 +28,10 @@ Create a service principal for authentication:
 
 ```bash
 # Create service principal
-az ad sp create-for-rbac \
-  --name "ai-claims-automation-sp" \
-  --role contributor \
-  --scopes /subscriptions/YOUR_SUBSCRIPTION_ID \
-  --sdk-auth
-```
+az ad sp create-for-rbac --name "ai-claims-automation-sp" --role contributor --scopes /subscriptions/YOUR_SUBSCRIPTION_ID
 
 Add the output as a GitHub secret named `AZURE_CREDENTIALS`.
 
-#### Option B: OpenID Connect (OIDC) - More Secure
-
-```bash
-# Create service principal for OIDC
-az ad sp create-for-rbac \
-  --name "ai-claims-automation-sp" \
-  --role contributor \
-  --scopes /subscriptions/YOUR_SUBSCRIPTION_ID
-
-# Configure federated credentials
-az ad app federated-credential create \
-  --id YOUR_APP_ID \
-  --parameters '{
-    "name": "GitHubActions",
-    "issuer": "https://token.actions.githubusercontent.com",
-    "subject": "repo:YOUR_GITHUB_USERNAME/ai-claims-automation:ref:refs/heads/main",
-    "description": "GitHub Actions",
-    "audiences": ["api://AzureADTokenExchange"]
-  }'
-```
 
 ### 2. GitHub Secrets Configuration
 

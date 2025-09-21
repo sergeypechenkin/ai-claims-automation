@@ -7,11 +7,11 @@ on:
     branches: [ main ]
 
 env:
-  AZURE_FUNCTIONAPP_NAME: 'ai-claims-automation-func'
+  AZURE_FUNCTIONAPP_NAME: 'func-ai-claims-automation'
   AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'
   PYTHON_VERSION: '3.12'
   AZURE_RESOURCE_GROUP: 'rg-ai-claims-automation'
-  AZURE_LOCATION: 'East US'
+  AZURE_LOCATION: 'North Europe'
 
 jobs:
   deploy-infrastructure:
@@ -24,9 +24,12 @@ jobs:
       uses: actions/checkout@v4
 
     - name: 'Login to Azure'
-      uses: azure/login@v1
+      uses: azure/login@v2
       with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
 
     - name: 'Create Resource Group'
       run: |
@@ -74,9 +77,12 @@ jobs:
         popd
 
     - name: 'Login to Azure'
-      uses: azure/login@v1
+      uses: azure/login@v2
       with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
 
     - name: 'Deploy to Azure Functions'
       uses: Azure/functions-action@v1
