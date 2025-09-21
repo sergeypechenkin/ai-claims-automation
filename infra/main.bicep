@@ -149,7 +149,4 @@ output applicationInsightsConnectionString string = applicationInsights.properti
 @description('The system-assigned managed identity principal ID.')
 output managedIdentityPrincipalId string = functionApp.identity.principalId
 
-@description('The system-assigned managed identity principal ID.')
-output managedIdentityPrincipalId string = functionApp.identity.principalId
-
 
