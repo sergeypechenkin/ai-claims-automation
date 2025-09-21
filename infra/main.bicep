@@ -86,11 +86,8 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
       }
     }
     siteConfig: {
-      pythonVersion: '3.12'
-      linuxFxVersion: 'Python|3.12'
       ftpsState: 'FtpsOnly'
       minTlsVersion: '1.2'
-      use32BitWorkerProcess: false
       scmMinTlsVersion: '1.2'
       appSettings: [
         {
@@ -148,6 +145,9 @@ output functionAppHostname string = functionApp.properties.defaultHostName
 
 @description('The Application Insights connection string.')
 output applicationInsightsConnectionString string = applicationInsights.properties.ConnectionString
+
+@description('The system-assigned managed identity principal ID.')
+output managedIdentityPrincipalId string = functionApp.identity.principalId
 
 @description('The system-assigned managed identity principal ID.')
 output managedIdentityPrincipalId string = functionApp.identity.principalId
