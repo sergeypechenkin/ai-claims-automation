@@ -46,14 +46,34 @@ jobs:
     - name: 'Deploy Infrastructure'
       id: bicep-deploy
       run: |
-        result=$(az deployment group create \
+        echo "Starting Bicep deployment..."
+        
+        # Deploy infrastructure
+        az deployment group create \
           --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
           --template-file infra/main.bicep \
           --parameters infra/main.bicepparam \
+          --verbose
+        
+        # Get outputs separately to avoid consumption issue
+        outputs=$(az deployment group show \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+          --name main \
           --query 'properties.outputs' \
           --output json)
         
-        echo "functionAppName=$(echo $result | jq -r '.functionAppName.value')" >> $GITHUB_OUTPUT
+        echo "Deployment outputs: $outputs"
+        
+        functionAppName=$(echo $outputs | jq -r '.functionAppName.value // empty')
+        
+        if [ -z "$functionAppName" ] || [ "$functionAppName" = "null" ]; then
+          echo "Error: Could not extract functionAppName from deployment outputs"
+          echo "Raw outputs: $outputs"
+          exit 1
+        fi
+        
+        echo "Extracted function app name: $functionAppName"
+        echo "functionAppName=$functionAppName" >> $GITHUB_OUTPUT
 
   build-and-deploy:
     runs-on: ubuntu-latest
