@@ -1,6 +1,8 @@
 using './main.bicep'
 
-param functionAppName = 'ai-claims-automation-func'
+param functionAppName = 'func-ai-claims-automation'
 param location = 'North Europe'
 param hostingPlanSku = 'FC1'
-param applicationInsightsName = 'ai-claims-automation-func-insights'
+param applicationInsightsName = 'func-ai-claims-automation-insights'
+param storageAccountName = 'staiclaimsauto001'
+

@@ -1,8 +1,8 @@
 @description('The name of the function app that you wish to create.')
-param functionAppName string = 'ai-claims-automation'
+param functionAppName string
 
 @description('Location for all resources.')
-param location string = resourceGroup().location
+param location string
 
 @description('The pricing tier for the hosting plan.')
 @allowed([
@@ -11,13 +11,13 @@ param location string = resourceGroup().location
   'EP2'
   'EP3'
 ])
-param hostingPlanSku string = 'FC1'
+param hostingPlanSku string
 
 @description('The name of the Application Insights.')
-param applicationInsightsName string = '${functionAppName}-insights'
+param applicationInsightsName string
 
 @description('The name of the storage account.')
-param storageAccountName string = '${uniqueString(resourceGroup().id)}storage'
+param storageAccountName string
 
 // Create storage account
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
