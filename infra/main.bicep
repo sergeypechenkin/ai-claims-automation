@@ -123,15 +123,4 @@ output functionAppName string = functionApp.name
 @description('The resource ID of the deployed function app.')
 output functionAppResourceId string = functionApp.id
 
-@description('The default hostname of the deployed function app.')
-output functionAppHostname string = functionApp.properties.defaultHostName
 
-@description('The Application Insights connection string.')
-output applicationInsightsConnectionString string = applicationInsights.properties.ConnectionString
-
-@description('The system-assigned managed identity principal ID.')
-output managedIdentityPrincipalId string = functionApp.identity.principalId
-output functionAppHostname string = functionApp.properties.defaultHostName
-
-@description('The Application Insights connection string.')
-output applicationInsightsConnectionString string = applicationInsights.properties.ConnectionString
