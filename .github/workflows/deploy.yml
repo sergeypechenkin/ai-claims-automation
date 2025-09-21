@@ -1,0 +1,88 @@
+name: Deploy Azure Function
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  AZURE_FUNCTIONAPP_NAME: 'ai-claims-automation-func'
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'
+  PYTHON_VERSION: '3.12'
+  AZURE_RESOURCE_GROUP: 'rg-ai-claims-automation'
+  AZURE_LOCATION: 'East US'
+
+jobs:
+  deploy-infrastructure:
+    runs-on: ubuntu-latest
+    environment: dev
+    outputs:
+      functionAppName: ${{ steps.bicep-deploy.outputs.functionAppName }}
+    steps:
+    - name: 'Checkout GitHub Action'
+      uses: actions/checkout@v4
+
+    - name: 'Login to Azure'
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: 'Create Resource Group'
+      run: |
+        az group create --name ${{ env.AZURE_RESOURCE_GROUP }} --location "${{ env.AZURE_LOCATION }}"
+
+    - name: 'Deploy Infrastructure'
+      id: bicep-deploy
+      run: |
+        result=$(az deployment group create \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+          --template-file infra/main.bicep \
+          --parameters infra/main.bicepparam \
+          --query 'properties.outputs' \
+          --output json)
+        
+        echo "functionAppName=$(echo $result | jq -r '.functionAppName.value')" >> $GITHUB_OUTPUT
+
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+    needs: deploy-infrastructure
+    steps:
+    - name: 'Checkout GitHub Action'
+      uses: actions/checkout@v4
+
+    - name: Setup Python ${{ env.PYTHON_VERSION }} Environment
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: 'Resolve Project Dependencies Using Pip'
+      shell: bash
+      run: |
+        pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt --target=".python_packages/lib/site-packages"
+        popd
+
+    - name: 'Run Tests'
+      shell: bash
+      run: |
+        pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
+        # Add your test commands here
+        # python -m pytest tests/
+        popd
+
+    - name: 'Login to Azure'
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: 'Deploy to Azure Functions'
+      uses: Azure/functions-action@v1
+      id: deploy-to-function
+      with:
+        app-name: ${{ needs.deploy-infrastructure.outputs.functionAppName }}
+        package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+        scm-do-build-during-deployment: true
+        enable-oryx-build: true
