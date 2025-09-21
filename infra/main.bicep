@@ -113,16 +113,9 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   }
 }
 
-// Grant Storage Blob Data Owner role to the function app
-resource storageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, functionAppName, 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
-  scope: storageAccount
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b') // Storage Blob Data Owner
-    principalId: functionApp.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
+// Note: Role assignment removed to avoid permission issues
+// To enable managed identity for storage, manually assign "Storage Blob Data Owner" role
+// to the function app's managed identity after deployment
 
 @description('The name of the deployed function app.')
 output functionAppName string = functionApp.name
@@ -131,6 +124,13 @@ output functionAppName string = functionApp.name
 output functionAppResourceId string = functionApp.id
 
 @description('The default hostname of the deployed function app.')
+output functionAppHostname string = functionApp.properties.defaultHostName
+
+@description('The Application Insights connection string.')
+output applicationInsightsConnectionString string = applicationInsights.properties.ConnectionString
+
+@description('The system-assigned managed identity principal ID.')
+output managedIdentityPrincipalId string = functionApp.identity.principalId
 output functionAppHostname string = functionApp.properties.defaultHostName
 
 @description('The Application Insights connection string.')
