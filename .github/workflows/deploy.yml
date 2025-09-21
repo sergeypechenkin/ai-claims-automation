@@ -23,6 +23,17 @@ jobs:
     - name: 'Checkout GitHub Action'
       uses: actions/checkout@v4
 
+    - name: 'Debug - Check if secret exists'
+      run: |
+        if [ -z "${{ secrets.AZURE_CREDENTIALS }}" ]; then
+          echo "AZURE_CREDENTIALS secret is empty or not found"
+          exit 1
+        else
+          echo "AZURE_CREDENTIALS secret exists (length: ${#AZURE_CREDENTIALS})"
+        fi
+      env:
+        AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+
     - name: 'Login to Azure'
       uses: azure/login@v1
       with:
