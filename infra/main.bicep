@@ -106,27 +106,6 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   }
 }
 
-// Grant Storage Blob Data Owner role to the function app for deployment storage
-resource deploymentStorageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, functionAppName, 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b')
-  scope: storageAccount
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b') // Storage Blob Data Owner
-    principalId: functionApp.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Grant Storage Account Contributor role for additional storage operations
-resource storageContributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, functionAppName, '17d1049b-9a84-46fb-8f53-869881c3d3ab')
-  scope: storageAccount
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab') // Storage Account Contributor
-    principalId: functionApp.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
 
 // Note: Role assignment removed to avoid permission issues
 // To enable managed identity for storage, manually assign "Storage Blob Data Owner" role
