@@ -173,6 +173,10 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           defaultValue: {}
           type: 'Object'
         }
+        sharedMailboxAddress: {
+          defaultValue: sharedMailboxAddress
+          type: 'String'
+        }
       }
       triggers: {
         When_a_new_email_arrives_in_shared_mailbox: {
@@ -190,9 +194,8 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             method: 'get'
             path: '/v2/SharedMailbox/Mail/OnNewEmail'
             queries: {
-              mailboxAddress: sharedMailboxAddress
+              mailboxAddress: '@parameters(\'sharedMailboxAddress\')'
               folderPath: 'Inbox'
-              subjectFilter: 'claim,insurance,damage,accident,injury,incident'
               includeAttachments: false
               onlyWithAttachment: false
               fetchOnlyWithAttachment: false
@@ -213,7 +216,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             hasAttachments: '@triggerBody()?[\'HasAttachment\']'
             toRecipients: '@triggerBody()?[\'ToRecipients\']'
             ccRecipients: '@triggerBody()?[\'CcRecipients\']'
-            mailboxAddress: sharedMailboxAddress
+            mailboxAddress: '@parameters(\'sharedMailboxAddress\')'
           }
         }
         Log_email_received: {
@@ -224,10 +227,10 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           }
           type: 'Compose'
           inputs: {
-            message: 'New email received in shared mailbox @{variables(\'sharedMailboxAddress\')} from @{outputs(\'Extract_email_data\')[\'sender\']} with subject: @{outputs(\'Extract_email_data\')[\'subject\']}'
+            message: 'New email received in shared mailbox @{parameters(\'sharedMailboxAddress\')} from @{outputs(\'Extract_email_data\')[\'sender\']} with subject: @{outputs(\'Extract_email_data\')[\'subject\']}'
             timestamp: '@utcNow()'
-            logicAppName: logicAppName
-            mailboxAddress: sharedMailboxAddress
+            logicAppName: '@workflow().name'
+            mailboxAddress: '@parameters(\'sharedMailboxAddress\')'
           }
         }
         Call_function_process_email: {
@@ -304,6 +307,9 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'office365')
           }
         }
+      }
+      sharedMailboxAddress: {
+        value: sharedMailboxAddress
       }
     }
   }
