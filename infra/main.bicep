@@ -129,11 +129,8 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
 @description('The name of the logic app to create.')
 param logicAppName string
 
-@description('Email address to monitor for incoming claims')
-param targetEmailAddress string
-
-@description('Shared mailbox address to monitor (if different from targetEmailAddress)')
-param sharedMailboxAddress string = targetEmailAddress
+@description('Shared mailbox address to monitor')
+param sharedMailboxAddress string
 
 @description('Office 365 connection name')
 param office365ConnectionName string = '${logicAppName}-office365-conn'
