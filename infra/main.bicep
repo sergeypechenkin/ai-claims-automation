@@ -156,9 +156,6 @@ resource office365Connection 'Microsoft.Web/connections@2016-06-01' = {
 resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
   name: logicAppName
   location: location
-  dependsOn: [
-    functionApp
-  ]
   tags: {
     displayName: logicAppName
     purpose: 'email-claims-processing'
@@ -340,12 +337,15 @@ output managedIdentityPrincipalId string = functionApp.identity.principalId
 
 @description('The name of the deployed logic app.')
 output logicAppName string = stg.name
+
 @description('The resource ID of the deployed logic app.')
 output logicAppResourceId string = stg.id
+
 @description('The Office 365 connection ID.')
 output office365ConnectionId string = office365Connection.id
 
 @description('The resource group name where resources are deployed.')
 output resourceGroupName string = resourceGroup().name
+
 @description('The location where resources are deployed.')
 output location string = location
