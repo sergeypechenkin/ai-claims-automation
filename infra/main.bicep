@@ -177,6 +177,10 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           defaultValue: sharedMailboxAddress
           type: 'String'
         }
+        functionAppUrl: {
+          defaultValue: 'https://${functionApp.properties.defaultHostName}'
+          type: 'String'
+        }
       }
       triggers: {
         When_a_new_email_arrives_in_shared_mailbox: {
@@ -242,7 +246,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           type: 'Http'
           inputs: {
             method: 'POST'
-            uri: 'https://@{reference(resourceId(\'Microsoft.Web/sites\', \'${functionAppName}\')).defaultHostName}/api/process_email'
+            uri: '@{parameters(\'functionAppUrl\')}/api/process_email'
             headers: {
               'Content-Type': 'application/json'
             }
@@ -310,6 +314,9 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
       }
       sharedMailboxAddress: {
         value: sharedMailboxAddress
+      }
+      functionAppUrl: {
+        value: 'https://${functionApp.properties.defaultHostName}'
       }
     }
   }
