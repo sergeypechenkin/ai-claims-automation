@@ -317,7 +317,7 @@ resource logicAppToFunctionRoleAssignment 'Microsoft.Authorization/roleAssignmen
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c') // Contributor role
     principalId: stg.identity.principalId
     principalType: 'ServicePrincipal'
-  }tor role
+  }
 }
 
 @description('The name of the deployed function app.')
