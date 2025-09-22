@@ -160,6 +160,9 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
     displayName: logicAppName
     purpose: 'email-claims-processing'
   }
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     state: 'Enabled'
     definition: {
@@ -249,6 +252,10 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
               toRecipients: '@outputs(\'Extract_email_data\')[\'toRecipients\']'
               source: 'logic-app-shared-mailbox'
             }
+            authentication: {
+              type: 'ManagedServiceIdentity'
+              audience: 'https://${functionApp.properties.defaultHostName}'
+            }
             retryPolicy: {
               type: 'fixed'
               count: 3
@@ -305,6 +312,16 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
   }
 }
 
+// Grant Logic App managed identity permissions to invoke Function App
+resource logicAppToFunctionRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(functionApp.id, stg.id, 'b24988ac-6180-42a0-ab88-20f7382dd24c')
+  scope: functionApp
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c') // Contributor role
+    principalId: stg.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
 
 @description('The name of the deployed function app.')
 output functionAppName string = functionApp.name
@@ -338,6 +355,9 @@ output resourceGroupName string = resourceGroup().name
 
 @description('The location where resources are deployed.')
 output location string = location
+
+@description('The Logic App managed identity principal ID.')
+output logicAppManagedIdentityPrincipalId string = stg.identity.principalId
 
 
 
