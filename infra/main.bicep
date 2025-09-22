@@ -125,6 +125,60 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
 // To enable managed identity for storage, manually assign "Storage Blob Data Owner" role
 // to the function app's managed identity after deployment
 
+// Create Logic App
+@description('The name of the logic app to create.')
+param logicAppName string
+
+@description('A test URI')
+param testUri string = 'https://azure.status.microsoft/status/'
+
+
+var frequency = 'Minute'
+var interval = '1'
+var type = 'recurrence'
+var actionType = 'http'
+var method = 'GET'
+var workflowSchema = 'https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#'
+
+resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
+  name: logicAppName
+  location: location
+  tags: {
+    displayName: logicAppName
+  }
+  properties: {
+    definition: {
+      '$schema': workflowSchema
+      contentVersion: '1.0.0.0'
+      parameters: {
+        testUri: {
+          type: 'string'
+          defaultValue: testUri
+        }
+      }
+      triggers: {
+        recurrence: {
+          type: type
+          recurrence: {
+            frequency: frequency
+            interval: interval
+          }
+        }
+      }
+      actions: {
+        actionType: {
+          type: actionType
+          inputs: {
+            method: method
+            uri: testUri
+          }
+        }
+      }
+    }
+  }
+}
+
+
 @description('The name of the deployed function app.')
 output functionAppName string = functionApp.name
 
@@ -140,3 +194,11 @@ output applicationInsightsConnectionString string = applicationInsights.properti
 @description('The system-assigned managed identity principal ID.')
 output managedIdentityPrincipalId string = functionApp.identity.principalId
 
+@description('The name of the deployed logic app.')
+output name string = stg.name
+@description('The resource ID of the deployed logic app.')
+output resourceId string = stg.id
+@description('The resource group name where resources are deployed.')
+output resourceGroupName string = resourceGroup().name
+@description('The location where resources are deployed.')
+output location string = location
