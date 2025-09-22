@@ -175,7 +175,6 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           type: 'String'
         }
         functionAppUrl: {
-          defaultValue: 'https://${functionApp.properties.defaultHostName}'
           type: 'String'
         }
       }
@@ -243,7 +242,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           type: 'Http'
           inputs: {
             method: 'POST'
-            uri: '@{parameters(\'functionAppUrl\')}/api/process_email'
+            uri: '@{workflow().parameters.functionAppUrl}/api/process_email'
             headers: {
               'Content-Type': 'application/json'
             }
@@ -326,8 +325,11 @@ output functionAppName string = functionApp.name
 @description('The resource ID of the deployed function app.')
 output functionAppResourceId string = functionApp.id
 
-@description('The default hostname of the deployed function app.')
+@description('The default hostname (FQDN) of the deployed function app.')
 output functionAppHostname string = functionApp.properties.defaultHostName
+
+@description('The base URL (https) of the deployed function app.')
+output functionAppUrl string = 'https://${functionApp.properties.defaultHostName}'
 
 @description('The Application Insights connection string.')
 output applicationInsightsConnectionString string = applicationInsights.properties.ConnectionString
