@@ -40,6 +40,14 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   }
 }
 
+// Create 'deployments' blob container
+resource deploymentsContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
+  name: '${storageAccount.name}/default/deployments'
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
 // Create hosting plan (Flex Consumption)
 resource hostingPlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: '${functionAppName}-plan'
