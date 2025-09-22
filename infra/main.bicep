@@ -125,52 +125,177 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
 // To enable managed identity for storage, manually assign "Storage Blob Data Owner" role
 // to the function app's managed identity after deployment
 
-// Create Logic App
+// Create Logic App for email monitoring
 @description('The name of the logic app to create.')
 param logicAppName string
 
-@description('A test URI')
-param testUri string = 'https://azure.status.microsoft/status/'
+@description('Email address to monitor for incoming claims')
+param targetEmailAddress string
 
+@description('Office 365 connection name')
+param office365ConnectionName string = '${logicAppName}-office365-conn'
 
-var frequency = 'Minute'
-var interval = '1'
-var type = 'recurrence'
-var actionType = 'http'
-var method = 'GET'
-var workflowSchema = 'https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#'
+// Office 365 API connection
+resource office365Connection 'Microsoft.Web/connections@2016-06-01' = {
+  name: office365ConnectionName
+  location: location
+  properties: {
+    displayName: 'Office 365 Outlook Connection for Claims Processing'
+    customParameterValues: {}
+    api: {
+      id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'office365')
+      displayName: 'Office 365 Outlook'
+      description: 'Microsoft Office 365 is a cloud-based subscription service that brings together the best tools for the way people work today.'
+      iconUri: 'https://connectoricons-prod.azureedge.net/releases/v1.0.1664/1.0.1664.3477/office365/icon.png'
+      brandColor: '#0078d4'
+    }
+  }
+}
 
+// Logic App for email processing
 resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
   name: logicAppName
   location: location
+  dependsOn: [
+    functionApp
+  ]
   tags: {
     displayName: logicAppName
+    purpose: 'email-claims-processing'
   }
   properties: {
+    state: 'Enabled'
     definition: {
-      '$schema': workflowSchema
+      '$schema': 'https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#'
       contentVersion: '1.0.0.0'
       parameters: {
-        testUri: {
-          type: 'string'
-          defaultValue: testUri
+        '$connections': {
+          defaultValue: {}
+          type: 'Object'
         }
       }
       triggers: {
-        recurrence: {
-          type: type
+        When_a_new_email_arrives: {
           recurrence: {
-            frequency: frequency
-            interval: interval
+            frequency: 'Minute'
+            interval: 1
           }
+          type: 'ApiConnection'
+          inputs: {
+            host: {
+              connection: {
+                name: '@parameters(\'$connections\')[\'office365\'][\'connectionId\']'
+              }
+            }
+            method: 'get'
+            path: '/Mail/OnNewEmail'
+            queries: {
+              folderPath: 'Inbox'
+              to: targetEmailAddress
+              subjectFilter: 'claim,insurance,damage,accident,injury,incident'
+              includeAttachments: false
+              onlyWithAttachment: false
+            }
+          }
+          splitOn: '@triggerBody()?[\'value\']'
         }
       }
       actions: {
-        actionType: {
-          type: actionType
+        Extract_email_data: {
+          runAfter: {}
+          type: 'Compose'
           inputs: {
-            method: method
-            uri: testUri
+            sender: '@triggerBody()?[\'From\']'
+            subject: '@triggerBody()?[\'Subject\']'
+            received: '@triggerBody()?[\'DateTimeReceived\']'
+            messageId: '@triggerBody()?[\'Id\']'
+            hasAttachments: '@triggerBody()?[\'HasAttachment\']'
+            body: '@triggerBody()?[\'Body\']'
+          }
+        }
+        Log_email_received: {
+          runAfter: {
+            Extract_email_data: [
+              'Succeeded'
+            ]
+          }
+          type: 'Compose'
+          inputs: {
+            message: 'New email received from @{outputs(\'Extract_email_data\')[\'sender\']} with subject: @{outputs(\'Extract_email_data\')[\'subject\']}'
+            timestamp: '@utcNow()'
+            logicAppName: logicAppName
+          }
+        }
+        Call_function_process_email: {
+          runAfter: {
+            Log_email_received: [
+              'Succeeded'
+            ]
+          }
+          type: 'Http'
+          inputs: {
+            method: 'POST'
+            uri: 'https://@{reference(resourceId(\'Microsoft.Web/sites\', \'${functionAppName}\')).defaultHostName}/api/process_email'
+            headers: {
+              'Content-Type': 'application/json'
+            }
+            body: {
+              sender: '@outputs(\'Extract_email_data\')[\'sender\']'
+              subject: '@outputs(\'Extract_email_data\')[\'subject\']'
+              received: '@outputs(\'Extract_email_data\')[\'received\']'
+              messageId: '@outputs(\'Extract_email_data\')[\'messageId\']'
+              hasAttachments: '@outputs(\'Extract_email_data\')[\'hasAttachments\']'
+              source: 'logic-app'
+            }
+            retryPolicy: {
+              type: 'fixed'
+              count: 3
+              interval: 'PT30S'
+            }
+          }
+        }
+        Handle_success_response: {
+          runAfter: {
+            Call_function_process_email: [
+              'Succeeded'
+            ]
+          }
+          type: 'Compose'
+          inputs: {
+            status: 'success'
+            message: 'Email processed successfully by Azure Function'
+            functionResponse: '@body(\'Call_function_process_email\')'
+            processedAt: '@utcNow()'
+            emailSender: '@outputs(\'Extract_email_data\')[\'sender\']'
+            emailSubject: '@outputs(\'Extract_email_data\')[\'subject\']'
+          }
+        }
+        Handle_function_error: {
+          runAfter: {
+            Call_function_process_email: [
+              'Failed'
+              'TimedOut'
+            ]
+          }
+          type: 'Compose'
+          inputs: {
+            status: 'error'
+            message: 'Failed to process email through Azure Function'
+            error: '@body(\'Call_function_process_email\')'
+            errorCode: '@outputs(\'Call_function_process_email\')[\'statusCode\']'
+            emailData: '@outputs(\'Extract_email_data\')'
+            errorTime: '@utcNow()'
+          }
+        }
+      }
+    }
+    parameters: {
+      '$connections': {
+        value: {
+          office365: {
+            connectionId: office365Connection.id
+            connectionName: office365ConnectionName
+            id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'office365')
           }
         }
       }
@@ -195,9 +320,12 @@ output applicationInsightsConnectionString string = applicationInsights.properti
 output managedIdentityPrincipalId string = functionApp.identity.principalId
 
 @description('The name of the deployed logic app.')
-output name string = stg.name
+output logicAppName string = stg.name
 @description('The resource ID of the deployed logic app.')
-output resourceId string = stg.id
+output logicAppResourceId string = stg.id
+@description('The Office 365 connection ID.')
+output office365ConnectionId string = office365Connection.id
+
 @description('The resource group name where resources are deployed.')
 output resourceGroupName string = resourceGroup().name
 @description('The location where resources are deployed.')
