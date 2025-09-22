@@ -241,7 +241,6 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             uri: 'https://${functionApp.properties.defaultHostName}/api/process_email'
             headers: {
               'Content-Type': 'application/json'
-              'x-functions-key': '@listkeys(resourceId(\'Microsoft.Web/sites/host\', \'${functionAppName}\', \'default\'), \'2023-01-01\').masterKey'
             }
             body: {
               sender: '@outputs(\'Extract_email_data\')[\'sender\']'
@@ -252,6 +251,9 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
               mailboxAddress: '@outputs(\'Extract_email_data\')[\'mailboxAddress\']'
               toRecipients: '@outputs(\'Extract_email_data\')[\'toRecipients\']'
               source: 'logic-app-shared-mailbox'
+            }
+            authentication: {
+              type: 'ManagedServiceIdentity'
             }
             retryPolicy: {
               type: 'fixed'
