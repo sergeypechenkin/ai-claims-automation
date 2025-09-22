@@ -132,6 +132,9 @@ param logicAppName string
 @description('Email address to monitor for incoming claims')
 param targetEmailAddress string
 
+@description('Shared mailbox address to monitor (if different from targetEmailAddress)')
+param sharedMailboxAddress string = targetEmailAddress
+
 @description('Office 365 connection name')
 param office365ConnectionName string = '${logicAppName}-office365-conn'
 
@@ -175,7 +178,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
         }
       }
       triggers: {
-        When_a_new_email_arrives: {
+        When_a_new_email_arrives_in_shared_mailbox: {
           recurrence: {
             frequency: 'Minute'
             interval: 1
@@ -188,13 +191,14 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
               }
             }
             method: 'get'
-            path: '/Mail/OnNewEmail'
+            path: '/v2/SharedMailbox/Mail/OnNewEmail'
             queries: {
+              mailboxAddress: sharedMailboxAddress
               folderPath: 'Inbox'
-              to: targetEmailAddress
               subjectFilter: 'claim,insurance,damage,accident,injury,incident'
               includeAttachments: false
               onlyWithAttachment: false
+              fetchOnlyWithAttachment: false
             }
           }
           splitOn: '@triggerBody()?[\'value\']'
@@ -210,7 +214,9 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             received: '@triggerBody()?[\'DateTimeReceived\']'
             messageId: '@triggerBody()?[\'Id\']'
             hasAttachments: '@triggerBody()?[\'HasAttachment\']'
-            body: '@triggerBody()?[\'Body\']'
+            toRecipients: '@triggerBody()?[\'ToRecipients\']'
+            ccRecipients: '@triggerBody()?[\'CcRecipients\']'
+            mailboxAddress: sharedMailboxAddress
           }
         }
         Log_email_received: {
@@ -221,9 +227,10 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           }
           type: 'Compose'
           inputs: {
-            message: 'New email received from @{outputs(\'Extract_email_data\')[\'sender\']} with subject: @{outputs(\'Extract_email_data\')[\'subject\']}'
+            message: 'New email received in shared mailbox @{variables(\'sharedMailboxAddress\')} from @{outputs(\'Extract_email_data\')[\'sender\']} with subject: @{outputs(\'Extract_email_data\')[\'subject\']}'
             timestamp: '@utcNow()'
             logicAppName: logicAppName
+            mailboxAddress: sharedMailboxAddress
           }
         }
         Call_function_process_email: {
@@ -245,7 +252,9 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
               received: '@outputs(\'Extract_email_data\')[\'received\']'
               messageId: '@outputs(\'Extract_email_data\')[\'messageId\']'
               hasAttachments: '@outputs(\'Extract_email_data\')[\'hasAttachments\']'
-              source: 'logic-app'
+              mailboxAddress: '@outputs(\'Extract_email_data\')[\'mailboxAddress\']'
+              toRecipients: '@outputs(\'Extract_email_data\')[\'toRecipients\']'
+              source: 'logic-app-shared-mailbox'
             }
             retryPolicy: {
               type: 'fixed'
