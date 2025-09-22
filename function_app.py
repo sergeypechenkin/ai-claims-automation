@@ -4,10 +4,10 @@ import logging
 from datetime import datetime
 from typing import Dict, Any
 
-# Initialize the Function App with proper configuration
+# Initialize the Function App
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
-@app.route(route="health", methods=["GET"])
+@app.route(route="health", methods=["GET"], auth_level=func.AuthLevel.ANONYMOUS)
 def health_check(req: func.HttpRequest) -> func.HttpResponse:
     """Health check endpoint to verify function app is working"""
     logging.info('Health check endpoint called')
@@ -20,7 +20,7 @@ def health_check(req: func.HttpRequest) -> func.HttpResponse:
     }
     
     return func.HttpResponse(
-        json.dumps(response_data),
+        json.dumps(response_data, indent=2),
         status_code=200,
         mimetype="application/json"
     )
@@ -77,7 +77,7 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
         
         logging.info(f'Email processed successfully for sender: {sender}')
         return func.HttpResponse(
-            json.dumps(response_data),
+            json.dumps(response_data, indent=2),
             status_code=200,
             mimetype="application/json"
         )
