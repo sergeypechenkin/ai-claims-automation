@@ -221,11 +221,22 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             toRecipients: '@triggerBody()?[\'ToRecipients\']'
             ccRecipients: '@triggerBody()?[\'CcRecipients\']'
             mailboxAddress: sharedMailboxAddress
+            bodyPreview: '@triggerBody()?[\'BodyPreview\']'
           }
+        }
+        Process_email_body: {
+          runAfter: {
+            Extract_email_data: [
+              'Succeeded'
+            ]
+          }
+          type: 'Compose'
+          inputs: {
+            cleanBodyText: '@replace(replace(replace(outputs(\'Extract_email_data\')[\'bodyText\'], \'<[^>]*>\', \'\'), \'&nbsp;\', \' \'), \'&amp;\', \'&\')' }
         }
         Log_email_received: {
           runAfter: {
-            Extract_email_data: [
+            Process_email_body: [
               'Succeeded'
             ]
           }
@@ -259,6 +270,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
               hasAttachments: '@outputs(\'Extract_email_data\')[\'hasAttachments\']'
               mailboxAddress: '@outputs(\'Extract_email_data\')[\'mailboxAddress\']'
               toRecipients: '@outputs(\'Extract_email_data\')[\'toRecipients\']'
+              bodyPreview: '@outputs(\'Extract_email_data\')[\'bodyPreview\']'
               source: 'logic-app-shared-mailbox'
             }
             retryPolicy: {
