@@ -4,8 +4,8 @@ import logging
 from datetime import datetime
 from typing import Dict, Any
 
-# Initialize the Function App
-app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
+# Initialize the Function App with proper configuration
+app = func.FunctionApp()
 
 @app.route(route="health", methods=["GET"], auth_level=func.AuthLevel.ANONYMOUS)
 def health_check(req: func.HttpRequest) -> func.HttpResponse:
