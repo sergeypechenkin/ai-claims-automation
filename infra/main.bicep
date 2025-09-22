@@ -31,6 +31,12 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
     supportsHttpsTrafficOnly: true
     minimumTlsVersion: 'TLS1_2'
     allowSharedKeyAccess: false // Disable key-based access for security
+    allowBlobPublicAccess: false // Keep blob public access disabled
+    publicNetworkAccess: 'Enabled' // Enable network access for Function App
+    networkAcls: {
+      defaultAction: 'Allow' // Allow access from Azure services
+      bypass: 'AzureServices' // Allow Azure services to bypass network rules
+    }
   }
 }
 
