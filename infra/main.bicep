@@ -69,6 +69,10 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   properties: {
     Application_Type: 'web'
     Request_Source: 'rest'
+    publicNetworkAccessForIngestion: 'Enabled'
+    publicNetworkAccessForQuery: 'Enabled'
+    DisableIpMasking: false
+    DisableLocalAuth: false
   }
 }
 
@@ -173,6 +177,10 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           defaultValue: {}
           type: 'Object'
         }
+        functionAppKey: {
+          type: 'securestring'
+          defaultValue: ''
+        }
       }
       triggers: {
         When_a_new_email_arrives_in_shared_mailbox: {
@@ -241,6 +249,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             uri: 'https://${functionApp.properties.defaultHostName}/api/process_email'
             headers: {
               'Content-Type': 'application/json'
+              'x-functions-key': '@parameters(\'functionAppKey\')'
             }
             body: {
               sender: '@outputs(\'Extract_email_data\')[\'sender\']'
@@ -251,9 +260,6 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
               mailboxAddress: '@outputs(\'Extract_email_data\')[\'mailboxAddress\']'
               toRecipients: '@outputs(\'Extract_email_data\')[\'toRecipients\']'
               source: 'logic-app-shared-mailbox'
-            }
-            authentication: {
-              type: 'ManagedServiceIdentity'
             }
             retryPolicy: {
               type: 'fixed'
@@ -307,18 +313,10 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           }
         }
       }
+      functionAppKey: {
+        value: listkeys(resourceId('Microsoft.Web/sites/host', functionAppName, 'default'), '2023-01-01').masterKey
+      }
     }
-  }
-}
-
-// Grant Logic App managed identity permissions to invoke Function App
-resource logicAppToFunctionRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(functionApp.id, stg.id, 'b24988ac-6180-42a0-ab88-20f7382dd24c')
-  scope: functionApp
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c') // Contributor role
-    principalId: stg.identity.principalId
-    principalType: 'ServicePrincipal'
   }
 }
 
