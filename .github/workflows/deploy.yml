@@ -54,14 +54,14 @@ jobs:
           --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
           --template-file infra/main.bicep \
           --parameters infra/main.bicepparam \
-          --verbose --debug
+          --verbose 
         
         # Get outputs separately to avoid consumption issue
         outputs=$(az deployment group show \
           --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
           --name main \
           --query 'properties.outputs' \
-          --output json --verbose --debug)
+          --output json --verbose )
         
         echo "Deployment outputs: $outputs"
         
