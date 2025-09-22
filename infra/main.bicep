@@ -170,13 +170,6 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           defaultValue: {}
           type: 'Object'
         }
-        sharedMailboxAddress: {
-          defaultValue: sharedMailboxAddress
-          type: 'String'
-        }
-        functionAppUrl: {
-          type: 'String'
-        }
       }
       triggers: {
         When_a_new_email_arrives_in_shared_mailbox: {
@@ -194,7 +187,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             method: 'get'
             path: '/v2/SharedMailbox/Mail/OnNewEmail'
             queries: {
-              mailboxAddress: '@parameters(\'sharedMailboxAddress\')'
+              mailboxAddress: sharedMailboxAddress
               folderPath: 'Inbox'
               includeAttachments: false
               onlyWithAttachment: false
@@ -216,7 +209,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             hasAttachments: '@triggerBody()?[\'HasAttachment\']'
             toRecipients: '@triggerBody()?[\'ToRecipients\']'
             ccRecipients: '@triggerBody()?[\'CcRecipients\']'
-            mailboxAddress: '@parameters(\'sharedMailboxAddress\')'
+            mailboxAddress: sharedMailboxAddress
           }
         }
         Log_email_received: {
@@ -227,10 +220,10 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           }
           type: 'Compose'
           inputs: {
-            message: 'New email received in shared mailbox @{parameters(\'sharedMailboxAddress\')} from @{outputs(\'Extract_email_data\')[\'sender\']} with subject: @{outputs(\'Extract_email_data\')[\'subject\']}'
+            message: 'New email received in shared mailbox ${sharedMailboxAddress} from @{outputs(\'Extract_email_data\')[\'sender\']} with subject: @{outputs(\'Extract_email_data\')[\'subject\']}'
             timestamp: '@utcNow()'
             logicAppName: '@workflow().name'
-            mailboxAddress: '@parameters(\'sharedMailboxAddress\')'
+            mailboxAddress: sharedMailboxAddress
           }
         }
         Call_function_process_email: {
@@ -242,7 +235,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           type: 'Http'
           inputs: {
             method: 'POST'
-            uri: '@{workflow().parameters.functionAppUrl}/api/process_email'
+            uri: 'https://${functionApp.properties.defaultHostName}/api/process_email'
             headers: {
               'Content-Type': 'application/json'
             }
@@ -308,12 +301,6 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           }
         }
       }
-      sharedMailboxAddress: {
-        value: sharedMailboxAddress
-      }
-      functionAppUrl: {
-        value: 'https://${functionApp.properties.defaultHostName}'
-      }
     }
   }
 }
@@ -338,6 +325,19 @@ output applicationInsightsConnectionString string = applicationInsights.properti
 output managedIdentityPrincipalId string = functionApp.identity.principalId
 
 @description('The name of the deployed logic app.')
+output logicAppName string = stg.name
+
+@description('The resource ID of the deployed logic app.')
+output logicAppResourceId string = stg.id
+
+@description('The Office 365 connection ID.')
+output office365ConnectionId string = office365Connection.id
+
+@description('The resource group name where resources are deployed.')
+output resourceGroupName string = resourceGroup().name
+
+@description('The location where resources are deployed.')
+output location string = location
 output logicAppName string = stg.name
 
 @description('The resource ID of the deployed logic app.')
