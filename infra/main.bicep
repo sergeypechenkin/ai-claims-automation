@@ -48,6 +48,8 @@ resource deploymentsContainer 'Microsoft.Storage/storageAccounts/blobServices/co
   }
 }
 
+var functionAppName = '${appnamePrefix}-${locationShort}-func'
+
 // Create hosting plan (Flex Consumption)
 resource hostingPlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: '${functionAppName}-plan'
@@ -77,8 +79,6 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
     DisableLocalAuth: false
   }
 }
-
-var functionAppName = '${appnamePrefix}-${locationShort}-func'
 
 resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   name: functionAppName
