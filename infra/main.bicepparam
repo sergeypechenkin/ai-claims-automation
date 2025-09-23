@@ -1,10 +1,12 @@
 using './main.bicep'
 
-param functionAppName = 'func-ai-claims-automation'
+param appnamePrefix = 'ai-claims-automation'
 param location = 'North Europe'
+param locationShort = 'neu'
+param functionAppName = '${appnamePrefix}-${locationShort}-func'
 param hostingPlanSku = 'FC1'
-param applicationInsightsName = 'func-ai-claims-automation-insights'
+param applicationInsightsName = '${appnamePrefix}-${locationShort}-insights'
 param storageAccountName = 'staiclaimsauto001'
-param logicAppName = 'logic-ai-claims-automation'
+param logicAppName = '${appnamePrefix}-${locationShort}-logic'
 param sharedMailboxAddress = 'inbox@oopslab.in'
 

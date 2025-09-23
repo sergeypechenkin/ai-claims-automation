@@ -30,7 +30,7 @@ Create a service principal for authentication:
 # Create service principal
 az ad sp create-for-rbac \
   --name "ai-claims-automation-sp" \
-  --role contributor \
+  --role owner \
   --scopes /subscriptions/YOUR_SUBSCRIPTION_ID \
   --sdk-auth
 ```
@@ -43,7 +43,7 @@ Add the output as a GitHub secret named `AZURE_CREDENTIALS`.
 # Create service principal for OIDC
 az ad sp create-for-rbac \
   --name "ai-claims-automation-sp" \
-  --role contributor \
+  --role owner \
   --scopes /subscriptions/YOUR_SUBSCRIPTION_ID
 
 

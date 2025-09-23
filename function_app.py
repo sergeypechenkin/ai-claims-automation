@@ -77,11 +77,9 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
             "data": {
                 "sender": sender,
                 "subject": subject,
-                "bodyLength": len(body_text),
                 "attachmentCount": len(attachments),
                 "processed_at": result.get("timestamp"),
                 "result": result.get("analysis", "Email analyzed successfully"),
-                "claims_related": result.get("details", {}).get("contains_keywords", False)
             }
         }
         

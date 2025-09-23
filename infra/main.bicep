@@ -1,6 +1,14 @@
 @description('The name of the function app that you wish to create.')
 param functionAppName string
 
+
+
+@description('A prefix for naming resources to ensure uniqueness.')
+param appnamePrefix string
+@description('A short string representing the location, used in resource names to ensure uniqueness.')
+param locationShort string
+
+
 @description('Location for all resources.')
 param location string
 
@@ -124,6 +132,10 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   }
 }
 
+// Grant Function App managed identity Storage Blob Data Owner on the Storage Account
+// Note: Role assignment removed to avoid deployment errors
+// To enable managed identity for storage, manually assign "Storage Blob Data Owner" role
+// to the function app's managed identity after deployment
 
 // Note: Role assignment removed to avoid permission issues
 // To enable managed identity for storage, manually assign "Storage Blob Data Owner" role
@@ -306,6 +318,40 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
   }
 }
 
+@description('The name of the SQL logical server.')
+param serverName string = uniqueString(appnamePrefix, resourceGroup().id)
+
+@description('The name of the SQL Database.')
+param sqlDBName string = 'ClaimDB'
+
+
+@description('The administrator username of the SQL logical server.')
+param SQLADMINLOGIN string
+
+@description('The administrator password of the SQL logical server.')
+@secure()
+param SQLADMINPASSWORD string
+
+resource sqlServer 'Microsoft.Sql/servers@2022-05-01-preview' = {
+  name: serverName
+  location: location
+  properties: {
+    administratorLogin: SQLADMINLOGIN
+    administratorLoginPassword: SQLADMINPASSWORD
+  }
+}
+
+resource sqlDB 'Microsoft.Sql/servers/databases@2022-05-01-preview' = {
+  parent: sqlServer
+  name: sqlDBName
+  location: location
+  sku: {
+    name: 'Basic'  
+    tier: 'Basic'   
+  }
+}
+
+
 @description('The name of the deployed function app.')
 output functionAppName string = functionApp.name
 
@@ -341,3 +387,6 @@ output location string = location
 
 @description('The Logic App managed identity principal ID.')
 output logicAppManagedIdentityPrincipalId string = stg.identity.principalId
+
+@description('The SQL Server name.')
+output sqlServerName string = sqlServer.name
