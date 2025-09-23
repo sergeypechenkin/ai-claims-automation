@@ -12,6 +12,8 @@ env:
   PYTHON_VERSION: '3.12'
   AZURE_RESOURCE_GROUP: 'rg-ai-claims-automation'
   AZURE_LOCATION: 'North Europe'
+  SQL_ADMIN_LOGIN: ${{ secrets.SQLADMINLOGIN }}
+  SQL_ADMIN_PASSWORD: ${{ secrets.SQLADMINPASSWORD }}
 
 jobs:
   deploy-infrastructure:
