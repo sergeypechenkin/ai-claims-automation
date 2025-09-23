@@ -380,3 +380,19 @@ output logicAppManagedIdentityPrincipalId string = stg.identity.principalId
 
 @description('The SQL Server name.')
 output sqlServerName string = sqlServer.name
+
+// Storage Blob Data Contributor role definition ID
+var storageBlobDataContributorRoleId = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+
+// Grant Function App MSI Storage Blob Data Contributor on the storage account
+resource functionAppBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, functionApp.id, storageBlobDataContributorRoleId)
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRoleId) // Storage Blob Data Contributor
+    principalId: functionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+  }
+}
