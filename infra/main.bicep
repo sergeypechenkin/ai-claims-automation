@@ -42,7 +42,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
 
 // Create 'deployments' blob container
 resource deploymentsContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
-  name: storageAccountName
+  name: '${storageAccount.name}/default/deployments'
   properties: {
     publicAccess: 'None'
   }
