@@ -326,18 +326,18 @@ param sqlDBName string = 'ClaimDB'
 
 
 @description('The administrator username of the SQL logical server.')
-param SQLADMINLOGIN string
+param sqlAdminLogin string
 
 @description('The administrator password of the SQL logical server.')
 @secure()
-param SQLADMINPASSWORD string
+param sqlAdminPassword string
 
 resource sqlServer 'Microsoft.Sql/servers@2022-05-01-preview' = {
   name: serverName
   location: location
   properties: {
-    administratorLogin: SQLADMINLOGIN
-    administratorLoginPassword: SQLADMINPASSWORD
+    administratorLogin: sqlAdminLogin
+    administratorLoginPassword: sqlAdminPassword
   }
 }
 
