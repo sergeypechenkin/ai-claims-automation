@@ -206,7 +206,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             queries: {
               mailboxAddress: sharedMailboxAddress
               folderPath: 'Inbox'
-              includeAttachments: false
+              includeAttachments: true
               onlyWithAttachment: false
               fetchOnlyWithAttachment: false
             }
@@ -221,27 +221,71 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           inputs: {
             sender: '@triggerBody()?[\'From\']'
             subject: '@triggerBody()?[\'Subject\']'
+            messageId: '@triggerBody()?[\'Id\']'
             bodyContent: '@coalesce(triggerBody()?[\'Body\'], triggerBody()?[\'BodyPreview\'], \'\')'
-            attachments: '@triggerBody()?[\'Attachments\']'
+            attachments: '@coalesce(triggerBody()?[\'Attachments\'], createArray())'
           }
         }
-        Process_email_body: {
-          runAfter: {
-            Extract_email_data: [
-              'Succeeded'
-            ]
-          }
+        Html_to_text: {
+          runAfter: { Extract_email_data: [ 'Succeeded' ] }
           type: 'Compose'
           inputs: {
-            cleanBodyText: '@replace(replace(replace(outputs(\'Extract_email_data\')[\'bodyContent\'], \'<[^>]*>\', \'\'), \'&nbsp;\', \' \'), \'&amp;\', \'&\')'
-            processedAttachments: '@if(greater(length(coalesce(outputs(\'Extract_email_data\')[\'attachments\'], createArray())), 0), outputs(\'Extract_email_data\')[\'attachments\'], createArray())'
+            bodyText: '@htmlToText(outputs(\'Extract_email_data\')[\'bodyContent\'])'
           }
+        }
+        Init_attachmentUris: {
+          runAfter: { Html_to_text: [ 'Succeeded' ] }
+          type: 'InitializeVariable'
+          inputs: {
+            name: 'attachmentUris'
+            type: 'Array'
+            value: []
+          }
+        }
+        Init_emailBlobUri: {
+          runAfter: { Init_attachmentUris: [ 'Succeeded' ] }
+          type: 'InitializeVariable'
+          inputs: {
+            name: 'emailBlobUri'
+            type: 'String'
+            value: ''
+          }
+        }
+        Upload_full_email: {
+          runAfter: { Init_emailBlobUri: [ 'Succeeded' ] }
+          type: 'ApiConnection'
+          inputs: {
+            host: {
+              connection: { name: '@parameters(\'$connections\')[\'azureblob\'][\'connectionId\']' }
+            }
+            method: 'post'
+            path: '/v2/datasets/default/files'
+            queries: {
+              folderPath: 'emailmessages'
+              name: '@{concat(\'message-\', coalesce(outputs(\'Extract_email_data\')[\'messageId\'], guid()), \'.json\')}'
+              queryParametersSingleEncoded: true
+            }
+            body: '@json(string(outputs(\'Extract_email_data\')))'
+                    queryParametersSingleEncoded: true
+                  }
+                  body: '@base64ToBinary(item()?[\'ContentBytes\'])'
+                }
+              }
+              Append_blob_uri: {
+                runAfter: {
+                  Upload_attachment_blob: [ 'Succeeded' ]
+                }
+                type: 'AppendToArrayVariable'
+                inputs: {
+                  name: 'attachmentUris'
+                  value: 'https://${storageAccount.name}.blob.core.windows.net/emailattachments/@{item()?[\'Name\']}'
+                }
+              }
+            }
         }
         Call_function_process_email: {
           runAfter: {
-            Process_email_body: [
-              'Succeeded'
-            ]
+            For_each_attachments: [ 'Succeeded' ]
           }
           type: 'Http'
           inputs: {
@@ -254,8 +298,9 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             body: {
               sender: '@outputs(\'Extract_email_data\')[\'sender\']'
               subject: '@outputs(\'Extract_email_data\')[\'subject\']'
-              bodyText: '@outputs(\'Process_email_body\')[\'cleanBodyText\']'
-              attachments: '@outputs(\'Process_email_body\')[\'processedAttachments\']'
+              bodyText: '@outputs(\'Html_to_text\')[\'bodyText\']'
+              timestamp: '@utcNow()'
+              attachmentUris: '@variables(\'attachmentUris\')'
             }
             retryPolicy: {
               type: 'fixed'
@@ -303,11 +348,46 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             connectionName: office365ConnectionName
             id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'office365')
           }
+          azureblob: {
+            connectionId: azureblobConnection.id
+            connectionName: azureBlobConnectionName
+            id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'azureblob')
+          }
         }
       }
       functionAppKey: {
         value: listkeys(resourceId('Microsoft.Web/sites/host', functionAppName, 'default'), '2023-01-01').masterKey
       }
+    }
+  }
+}
+
+// Дополнительный контейнер для вложений
+resource emailAttachmentsContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
+  name: '${storageAccount.name}/default/emailattachments'
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
+// Подключение Azure Blob
+var azureBlobConnectionName = '${logicAppName}-blob-conn'
+
+resource azureblobConnection 'Microsoft.Web/connections@2016-06-01' = {
+  name: azureBlobConnectionName
+  location: location
+  properties: {
+    displayName: 'Blob Storage Connection for Email Attachments'
+    parameterValues: {
+      accountName: storageAccount.name
+      accessKey: listKeys(storageAccount.id, '2023-01-01').keys[0].value
+    }
+    api: {
+      id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'azureblob')
+      displayName: 'Azure Blob Storage'
+      description: 'Azure Blob Storage connector'
+      iconUri: 'https://connectoricons-prod.azureedge.net/releases/v1.0.1664/1.0.1664.3477/azureblob/icon.png'
+      brandColor: '#804998'
     }
   }
 }

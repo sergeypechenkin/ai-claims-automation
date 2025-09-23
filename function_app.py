@@ -2,7 +2,7 @@ import azure.functions as func
 import json
 import logging
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 # Initialize the Function App with proper configuration
 app = func.FunctionApp()
@@ -27,68 +27,61 @@ def health_check(req: func.HttpRequest) -> func.HttpResponse:
 
 @app.route(route="process_email", methods=["POST"])
 def process_email(req: func.HttpRequest) -> func.HttpResponse:
-    """
-    Process email information sent from Logic Apps
-    Expected JSON format: {
-        "sender": "email@domain.com", 
-        "subject": "Email Subject",
-        "bodyText": "Clean email body text without HTML formatting",
-        "attachments": [{"name": "file.pdf", "size": 1024}]
-    }
-    """
-    logging.info('Email processing function triggered')
-    
+    logging.info('process_email invoked')
     try:
-        # Parse the JSON request body
-        req_body = req.get_json()
-        
-        if not req_body:
-            logging.warning('Empty or invalid JSON request body')
+        data = req.get_json()
+        sender = (data.get('sender') or '').strip()
+        subject = (data.get('subject') or '').strip()
+        email_blob_uri = data.get('emailBlobUri')
+        attachment_uris: List[str] = data.get('attachmentUris', [])
+        event_ts = data.get('timestamp') or datetime.utcnow().isoformat()
+
+        if not sender or not subject or not email_blob_uri:
             return func.HttpResponse(
-                json.dumps({"error": "Invalid JSON in request body"}),
+                json.dumps({"error": "Required fields: sender, subject, emailBlobUri"}),
                 status_code=400,
                 mimetype="application/json"
             )
-        
-        # Extract essential email data from the request
-        sender = req_body.get('sender', '').strip()
-        subject = req_body.get('subject', '').strip()
-        body_text = req_body.get('bodyText', '').strip()
-        attachments = req_body.get('attachments', [])
-        
-        if not sender or not subject:
-            logging.warning(f'Missing required fields - sender: {bool(sender)}, subject: {bool(subject)}')
-            return func.HttpResponse(
-                json.dumps({"error": "Missing required fields: sender and/or subject"}),
-                status_code=400,
-                mimetype="application/json"
-            )
-        
-        # Log the email information
-        logging.info(f'Processing email - Sender: {sender}, Subject: {subject}, Body length: {len(body_text)}, Attachments: {len(attachments)}')
-        
-        # Process the email data
-        result = process_email_data(sender, subject, body_text, attachments)
-        
-        # Return success response
-        response_data = {
+
+        result = process_email_metadata(sender, subject, email_blob_uri, attachment_uris, event_ts)
+
+        resp = {
             "status": "success",
-            "message": "Email processed successfully",
+            "message": "Email metadata processed",
             "data": {
                 "sender": sender,
                 "subject": subject,
-                "bodyText": body_text,  # added
-                "attachmentCount": len(attachments),
+                "emailBlobUri": email_blob_uri,
+                "attachmentUris": attachment_uris,
+                "attachmentCount": len(attachment_uris),
+                "eventTimestamp": event_ts,
                 "processed_at": result.get("timestamp"),
-                "result": result.get("analysis", "Email analyzed successfully"),
+                "analysis": result.get("analysis")
             }
         }
-        
-        logging.info(f'Email processed successfully for sender: {sender}')
-        return func.HttpResponse(
-            json.dumps(response_data, indent=2),
-            status_code=200,
-            mimetype="application/json"
+        return func.HttpResponse(json.dumps(resp, indent=2), status_code=200, mimetype="application/json")
+    except ValueError:
+        return func.HttpResponse(json.dumps({"error": "Invalid JSON"}), status_code=400, mimetype="application/json")
+    except Exception as ex:
+        logging.error(f'Unhandled error: {ex}', exc_info=True)
+        return func.HttpResponse(json.dumps({"error": "Internal server error"}), status_code=500, mimetype="application/json")
+
+def process_email_metadata(sender: str, subject: str, email_blob_uri: str, attachment_uris: List[str], event_timestamp: str) -> Dict[str, Any]:
+    try:
+        ts = datetime.utcnow().isoformat()
+        analysis = f"Email from {sender} '{subject}' stored. {len(attachment_uris)} attachment blobs."
+        details = {
+            "sender_domain": sender.split('@')[-1] if '@' in sender else "unknown",
+            "email_blob_uri": email_blob_uri,
+            "attachment_uri_count": len(attachment_uris),
+            "has_attachments": len(attachment_uris) > 0,
+            "event_timestamp": event_timestamp,
+            "processed_by": "ai-claims-automation"
+        }
+        return {"timestamp": ts, "analysis": analysis, "details": details}
+    except Exception as e:
+        logging.error(f'processing failure: {e}', exc_info=True)
+        return {"timestamp": datetime.utcnow().isoformat(), "analysis": "failure", "details": {}}
         )
         
     except ValueError as e:
@@ -99,26 +92,33 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
             mimetype="application/json"
         )
     except Exception as e:
-        logging.error(f'Error processing email: {str(e)}', exc_info=True)
+        logging.error(f'Error processing email: {e}', exc_info=True)
         return func.HttpResponse(
             json.dumps({"error": "Internal server error"}),
             status_code=500,
             mimetype="application/json"
         )
 
-def process_email_data(sender: str, subject: str, body_text: str, attachments: list = []) -> Dict[str, Any]:
+def process_email_data(sender: str, subject: str, body_text: str, attachment_uris: List[str], event_timestamp: str) -> Dict[str, Any]:
     """
     Process the email data and return analysis results
     """
     try:
-        timestamp = datetime.utcnow().isoformat()
-        
-        if attachments is None:
-            attachments = []
-        
-
-        
-        # Analyze attachments
+        ts = datetime.utcnow().isoformat()
+        analysis_result = {
+            "sender_domain": sender.split('@')[-1] if '@' in sender else "unknown",
+            "subject_length": len(subject),
+            "body_length": len(body_text),
+            "attachment_uri_count": len(attachment_uris),
+            "has_attachments": len(attachment_uris) > 0,
+            "event_timestamp": event_timestamp,
+            "processed_by": "ai-claims-automation"
+        }
+        analysis = f"Email from {sender} with subject '{subject}' and {len(attachment_uris)} attachment URIs processed."
+        return {"timestamp": ts, "analysis": analysis, "details": analysis_result}
+    except Exception as ex:
+        logging.error(f'Analysis failure: {ex}', exc_info=True)
+        return {"timestamp": datetime.utcnow().isoformat(), "analysis": "Analysis error", "details": {}}
         attachment_names = [att.get('name', '') for att in attachments if isinstance(att, dict)]
         total_attachment_size = sum(att.get('size', 0) for att in attachments if isinstance(att, dict))
         
