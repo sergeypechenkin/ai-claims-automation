@@ -394,5 +394,3 @@ resource functionAppBlobDataContributor 'Microsoft.Authorization/roleAssignments
     principalType: 'ServicePrincipal'
   }
 }
-  }
-}
