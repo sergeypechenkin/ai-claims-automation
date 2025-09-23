@@ -106,7 +106,7 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
             mimetype="application/json"
         )
 
-def process_email_data(sender: str, subject: str, body_text: str = '', attachments: list = []) -> Dict[str, Any]:
+def process_email_data(sender: str, subject: str, body_text: str, attachments: list = []) -> Dict[str, Any]:
     """
     Process the email data and return analysis results
     """
@@ -124,7 +124,6 @@ def process_email_data(sender: str, subject: str, body_text: str = '', attachmen
         
         analysis_result = {
             "sender_domain": sender.split('@')[-1] if '@' in sender else "unknown",
-            "subject_length": len(subject),
             "body_text": body_text,
             "attachment_count": len(attachments),
             "attachment_names": attachment_names,
