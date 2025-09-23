@@ -107,7 +107,7 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
             mimetype="application/json"
         )
 
-def process_email_data(sender: str, subject: str, body_text: str = '', attachments: list = None) -> Dict[str, Any]:
+def process_email_data(sender: str, subject: str, body_text: str = '', attachments: list = []) -> Dict[str, Any]:
     """
     Process the email data and return analysis results
     """
