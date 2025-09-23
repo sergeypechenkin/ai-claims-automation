@@ -222,6 +222,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             ccRecipients: '@triggerBody()?[\'CcRecipients\']'
             mailboxAddress: sharedMailboxAddress
             bodyPreview: '@triggerBody()?[\'BodyPreview\']'
+            bodyContent: '@coalesce(triggerBody()?[\'Body\'], triggerBody()?[\'BodyPreview\'], \'\')'
           }
         }
         Process_email_body: {
@@ -232,7 +233,8 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           }
           type: 'Compose'
           inputs: {
-            cleanBodyText: '@replace(replace(replace(outputs(\'Extract_email_data\')[\'bodyText\'], \'<[^>]*>\', \'\'), \'&nbsp;\', \' \'), \'&amp;\', \'&\')' }
+            cleanBodyText: '@replace(replace(replace(outputs(\'Extract_email_data\')[\'bodyContent\'], \'<[^>]*>\', \'\'), \'&nbsp;\', \' \'), \'&amp;\', \'&\')'
+          }
         }
         Log_email_received: {
           runAfter: {
@@ -271,6 +273,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
               mailboxAddress: '@outputs(\'Extract_email_data\')[\'mailboxAddress\']'
               toRecipients: '@outputs(\'Extract_email_data\')[\'toRecipients\']'
               bodyPreview: '@outputs(\'Extract_email_data\')[\'bodyPreview\']'
+              bodyText: '@outputs(\'Process_email_body\')[\'cleanBodyText\']'
               source: 'logic-app-shared-mailbox'
             }
             retryPolicy: {
