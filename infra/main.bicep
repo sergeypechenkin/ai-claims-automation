@@ -341,35 +341,3 @@ output location string = location
 
 @description('The Logic App managed identity principal ID.')
 output logicAppManagedIdentityPrincipalId string = stg.identity.principalId
-@description('The default hostname (FQDN) of the deployed function app.')
-output functionAppHostname string = functionApp.properties.defaultHostName
-
-@description('The base URL (https) of the deployed function app.')
-output functionAppUrl string = 'https://${functionApp.properties.defaultHostName}'
-
-@description('The Application Insights connection string.')
-output applicationInsightsConnectionString string = applicationInsights.properties.ConnectionString
-
-@description('The system-assigned managed identity principal ID.')
-output managedIdentityPrincipalId string = functionApp.identity.principalId
-
-@description('The name of the deployed logic app.')
-output logicAppName string = stg.name
-
-@description('The resource ID of the deployed logic app.')
-output logicAppResourceId string = stg.id
-
-@description('The Office 365 connection ID.')
-output office365ConnectionId string = office365Connection.id
-
-@description('The resource group name where resources are deployed.')
-output resourceGroupName string = resourceGroup().name
-
-@description('The location where resources are deployed.')
-output location string = location
-
-@description('The Logic App managed identity principal ID.')
-output logicAppManagedIdentityPrincipalId string = stg.identity.principalId
-
-
-
