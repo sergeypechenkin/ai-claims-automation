@@ -77,6 +77,7 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
             "data": {
                 "sender": sender,
                 "subject": subject,
+                "bodyText": body_text,  # added
                 "attachmentCount": len(attachments),
                 "processed_at": result.get("timestamp"),
                 "result": result.get("analysis", "Email analyzed successfully"),
@@ -124,7 +125,7 @@ def process_email_data(sender: str, subject: str, body_text: str = '', attachmen
         analysis_result = {
             "sender_domain": sender.split('@')[-1] if '@' in sender else "unknown",
             "subject_length": len(subject),
-            "body_length": len(body_text),
+            "body_text": body_text,
             "attachment_count": len(attachments),
             "attachment_names": attachment_names,
             "total_attachment_size": total_attachment_size,

@@ -80,6 +80,7 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
+
 resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   name: functionAppName
   location: location
@@ -127,14 +128,16 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   }
 }
 
-// Grant Function App managed identity Storage Blob Data Owner on the Storage Account
-// Note: Role assignment removed to avoid deployment errors
-// To enable managed identity for storage, manually assign "Storage Blob Data Owner" role
-// to the function app's managed identity after deployment
-
-// Note: Role assignment removed to avoid permission issues
-// To enable managed identity for storage, manually assign "Storage Blob Data Owner" role
-// to the function app's managed identity after deployment
+// Grant Function App MSI Storage Blob Data Contributor on the storage account
+resource functionAppBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, functionApp.id, storageBlobDataContributorRoleId)
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRoleId) // Storage Blob Data Contributor
+    principalId: functionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
 
 // Create Logic App for email monitoring
 
@@ -329,6 +332,7 @@ resource sqlServer 'Microsoft.Sql/servers@2022-05-01-preview' = {
   properties: {
     administratorLogin: sqlAdminLogin
     administratorLoginPassword: sqlAdminPassword
+    publicNetworkAccess: 'Enabled' // Enable public network access
   }
 }
 
@@ -339,6 +343,16 @@ resource sqlDB 'Microsoft.Sql/servers/databases@2022-05-01-preview' = {
   sku: {
     name: 'Basic'  
     tier: 'Basic'   
+  }
+}
+
+// Allow Azure services to access the SQL server
+resource sqlServerFirewallRuleAzure 'Microsoft.Sql/servers/firewallRules@2022-05-01-preview' = {
+  parent: sqlServer
+  name: 'AllowAzureServices'
+  properties: {
+    startIpAddress: '0.0.0.0'
+    endIpAddress: '0.0.0.0'
   }
 }
 
@@ -384,13 +398,4 @@ output sqlServerName string = sqlServer.name
 // Storage Blob Data Contributor role definition ID
 var storageBlobDataContributorRoleId = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
 
-// Grant Function App MSI Storage Blob Data Contributor on the storage account
-resource functionAppBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, functionApp.id, storageBlobDataContributorRoleId)
-  scope: storageAccount
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRoleId) // Storage Blob Data Contributor
-    principalId: functionApp.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
+
