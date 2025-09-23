@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  AZURE_FUNCTIONAPP_NAME: 'func-ai-claims-automation'
+  AZURE_APP_NAME: 'ai-claims-automation'
   AZURE_FUNCTIONAPP_PACKAGE_PATH: '.'
   PYTHON_VERSION: '3.12'
   AZURE_RESOURCE_GROUP: 'rg-ai-claims-automation'
@@ -57,14 +57,14 @@ jobs:
           --template-file infra/main.bicep \
           --parameters infra/main.bicepparam \
           --parameters sqlAdminLogin=$SQL_ADMIN_LOGIN sqlAdminPassword=$SQL_ADMIN_PASSWORD \
-          --verbose 
+          --verbose --debug
         
         # Get outputs separately to avoid consumption issue
         outputs=$(az deployment group show \
           --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
           --name main \
           --query 'properties.outputs' \
-          --output json --verbose )
+          --output json --verbose --debug)
         
         echo "Deployment outputs: $outputs"
         
