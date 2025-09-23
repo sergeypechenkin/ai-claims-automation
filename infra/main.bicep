@@ -1,16 +1,14 @@
-@description('The name of the function app that you wish to create.')
-param functionAppName string
-
-
-
-@description('A prefix for naming resources to ensure uniqueness.')
-param appnamePrefix string
 @description('A short string representing the location, used in resource names to ensure uniqueness.')
 param locationShort string
 
-
 @description('Location for all resources.')
 param location string
+
+@description('The name of the app that you wish to create.')
+param appnamePrefix string
+
+@description('The name of the storage account.')
+param storageAccountName string
 
 @description('The pricing tier for the hosting plan.')
 @allowed([
@@ -21,15 +19,9 @@ param location string
 ])
 param hostingPlanSku string
 
-@description('The name of the Application Insights.')
-param applicationInsightsName string
-
-@description('The name of the storage account.')
-param storageAccountName string
-
 // Create storage account
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
-  name: storageAccountName
+  name: 'st${uniqueString(resourceGroup().id)}')
   location: location
   sku: {
     name: 'Standard_LRS'
@@ -50,7 +42,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
 
 // Create 'deployments' blob container
 resource deploymentsContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
-  name: '${storageAccount.name}/default/deployments'
+  name: storageAccountName
   properties: {
     publicAccess: 'None'
   }
@@ -69,9 +61,11 @@ resource hostingPlan 'Microsoft.Web/serverfarms@2024-04-01' = {
   }
 }
 
+var applicationInsightsname = '${appnamePrefix}-${locationShort}-insights'
+
 // Create Application Insights
 resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
-  name: applicationInsightsName
+  name: applicationInsightsname
   location: location
   kind: 'web'
   properties: {
@@ -84,7 +78,8 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
-// Create Function App directly instead of using AVM module
+var functionAppName = '${appnamePrefix}-${locationShort}-func'
+
 resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
   name: functionAppName
   location: location
@@ -142,15 +137,12 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
 // to the function app's managed identity after deployment
 
 // Create Logic App for email monitoring
-@description('The name of the logic app to create.')
-param logicAppName string
 
 @description('Shared mailbox address to monitor')
 param sharedMailboxAddress string
-
-@description('Office 365 connection name')
-param office365ConnectionName string = '${logicAppName}-office365-conn'
-
+// Logic App for email processing
+var logicAppName = '${appnamePrefix}-${locationShort}-logic'
+var office365ConnectionName = '${logicAppName}-office365-conn'
 // Office 365 API connection
 resource office365Connection 'Microsoft.Web/connections@2016-06-01' = {
   name: office365ConnectionName
@@ -168,7 +160,6 @@ resource office365Connection 'Microsoft.Web/connections@2016-06-01' = {
   }
 }
 
-// Logic App for email processing
 resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
   name: logicAppName
   location: location
@@ -319,10 +310,10 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
 }
 
 @description('The name of the SQL logical server.')
-param serverName string = uniqueString(appnamePrefix, resourceGroup().id)
+var server_name string = toLower('${appnamePrefix}-sqlsrv-${locationShort}')
 
 @description('The name of the SQL Database.')
-param sqlDBName string = 'ClaimDB'
+var sql_db_name string = toLower('${appnamePrefix}-sqldb-${locationShort}')
 
 
 @description('The administrator username of the SQL logical server.')
@@ -333,7 +324,7 @@ param sqlAdminLogin string
 param sqlAdminPassword string
 
 resource sqlServer 'Microsoft.Sql/servers@2022-05-01-preview' = {
-  name: serverName
+  name: server_name 
   location: location
   properties: {
     administratorLogin: sqlAdminLogin
@@ -343,14 +334,13 @@ resource sqlServer 'Microsoft.Sql/servers@2022-05-01-preview' = {
 
 resource sqlDB 'Microsoft.Sql/servers/databases@2022-05-01-preview' = {
   parent: sqlServer
-  name: sqlDBName
+  name: sql_db_name
   location: location
   sku: {
     name: 'Basic'  
     tier: 'Basic'   
   }
 }
-
 
 @description('The name of the deployed function app.')
 output functionAppName string = functionApp.name
