@@ -215,14 +215,8 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           inputs: {
             sender: '@triggerBody()?[\'From\']'
             subject: '@triggerBody()?[\'Subject\']'
-            received: '@triggerBody()?[\'DateTimeReceived\']'
-            messageId: '@triggerBody()?[\'Id\']'
-            hasAttachments: '@triggerBody()?[\'HasAttachment\']'
-            toRecipients: '@triggerBody()?[\'ToRecipients\']'
-            ccRecipients: '@triggerBody()?[\'CcRecipients\']'
-            mailboxAddress: sharedMailboxAddress
-            bodyPreview: '@triggerBody()?[\'BodyPreview\']'
             bodyContent: '@coalesce(triggerBody()?[\'Body\'], triggerBody()?[\'BodyPreview\'], \'\')'
+            attachments: '@triggerBody()?[\'Attachments\']'
           }
         }
         Process_email_body: {
@@ -234,25 +228,12 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           type: 'Compose'
           inputs: {
             cleanBodyText: '@replace(replace(replace(outputs(\'Extract_email_data\')[\'bodyContent\'], \'<[^>]*>\', \'\'), \'&nbsp;\', \' \'), \'&amp;\', \'&\')'
-          }
-        }
-        Log_email_received: {
-          runAfter: {
-            Process_email_body: [
-              'Succeeded'
-            ]
-          }
-          type: 'Compose'
-          inputs: {
-            message: 'New email received in shared mailbox ${sharedMailboxAddress} from @{outputs(\'Extract_email_data\')[\'sender\']} with subject: @{outputs(\'Extract_email_data\')[\'subject\']}'
-            timestamp: '@utcNow()'
-            logicAppName: '@workflow().name'
-            mailboxAddress: sharedMailboxAddress
+            processedAttachments: '@if(greater(length(coalesce(outputs(\'Extract_email_data\')[\'attachments\'], createArray())), 0), outputs(\'Extract_email_data\')[\'attachments\'], createArray())'
           }
         }
         Call_function_process_email: {
           runAfter: {
-            Log_email_received: [
+            Process_email_body: [
               'Succeeded'
             ]
           }
@@ -267,14 +248,8 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             body: {
               sender: '@outputs(\'Extract_email_data\')[\'sender\']'
               subject: '@outputs(\'Extract_email_data\')[\'subject\']'
-              received: '@outputs(\'Extract_email_data\')[\'received\']'
-              messageId: '@outputs(\'Extract_email_data\')[\'messageId\']'
-              hasAttachments: '@outputs(\'Extract_email_data\')[\'hasAttachments\']'
-              mailboxAddress: '@outputs(\'Extract_email_data\')[\'mailboxAddress\']'
-              toRecipients: '@outputs(\'Extract_email_data\')[\'toRecipients\']'
-              bodyPreview: '@outputs(\'Extract_email_data\')[\'bodyPreview\']'
               bodyText: '@outputs(\'Process_email_body\')[\'cleanBodyText\']'
-              source: 'logic-app-shared-mailbox'
+              attachments: '@outputs(\'Process_email_body\')[\'processedAttachments\']'
             }
             retryPolicy: {
               type: 'fixed'
@@ -295,8 +270,6 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             message: 'Email processed successfully by Azure Function'
             functionResponse: '@body(\'Call_function_process_email\')'
             processedAt: '@utcNow()'
-            emailSender: '@outputs(\'Extract_email_data\')[\'sender\']'
-            emailSubject: '@outputs(\'Extract_email_data\')[\'subject\']'
           }
         }
         Handle_function_error: {
@@ -311,8 +284,6 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             status: 'error'
             message: 'Failed to process email through Azure Function'
             error: '@body(\'Call_function_process_email\')'
-            errorCode: '@outputs(\'Call_function_process_email\')[\'statusCode\']'
-            emailData: '@outputs(\'Extract_email_data\')'
             errorTime: '@utcNow()'
           }
         }
@@ -341,6 +312,35 @@ output functionAppName string = functionApp.name
 @description('The resource ID of the deployed function app.')
 output functionAppResourceId string = functionApp.id
 
+@description('The default hostname (FQDN) of the deployed function app.')
+output functionAppHostname string = functionApp.properties.defaultHostName
+
+@description('The base URL (https) of the deployed function app.')
+output functionAppUrl string = 'https://${functionApp.properties.defaultHostName}'
+
+@description('The Application Insights connection string.')
+output applicationInsightsConnectionString string = applicationInsights.properties.ConnectionString
+
+@description('The system-assigned managed identity principal ID.')
+output managedIdentityPrincipalId string = functionApp.identity.principalId
+
+@description('The name of the deployed logic app.')
+output logicAppName string = stg.name
+
+@description('The resource ID of the deployed logic app.')
+output logicAppResourceId string = stg.id
+
+@description('The Office 365 connection ID.')
+output office365ConnectionId string = office365Connection.id
+
+@description('The resource group name where resources are deployed.')
+output resourceGroupName string = resourceGroup().name
+
+@description('The location where resources are deployed.')
+output location string = location
+
+@description('The Logic App managed identity principal ID.')
+output logicAppManagedIdentityPrincipalId string = stg.identity.principalId
 @description('The default hostname (FQDN) of the deployed function app.')
 output functionAppHostname string = functionApp.properties.defaultHostName
 
