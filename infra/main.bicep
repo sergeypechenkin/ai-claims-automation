@@ -490,13 +490,18 @@ resource azureblobConnection 'Microsoft.Web/connections@2016-06-01' = {
   properties: {
     displayName: 'Blob Storage Connection'
     parameterValues: {
-      accountName: storageAccount.name
+      accountName: storageAccountName
       accessKey: listKeys(storageAccount.id, '2023-01-01').keys[0].value
     }
     api: {
       id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'azureblob')
     }
   }
+  dependsOn: [
+    storageAccount
+    emailMessagesContainer
+    emailAttachmentsContainer
+  ]
 }
 
 @description('The name of the SQL logical server.')

@@ -2,7 +2,6 @@ import azure.functions as func
 import json
 import logging
 from datetime import datetime, timezone
-from datetime import timezone
 from typing import Dict, Any, List
 
 # Initialize the Function App with proper configuration
@@ -16,7 +15,7 @@ def health_check(req: func.HttpRequest) -> func.HttpResponse:
     response_data = {
         "status": "healthy",
         "message": "AI Claims Automation Function App is running",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "version": "1.0.0"
     }
     
@@ -35,7 +34,7 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
         subject = (data.get('subject') or '').strip()
         email_blob_uri = data.get('emailBlobUri')
         attachment_uris: List[str] = data.get('attachmentUris', [])
-        event_ts = data.get('timestamp') or datetime.utcnow().isoformat()
+        event_ts = data.get('timestamp') or datetime.now(timezone.utc).isoformat()
 
         if not sender or not subject or not email_blob_uri:
             return func.HttpResponse(
@@ -99,6 +98,7 @@ def process_email_metadata(sender: str, subject: str, email_blob_uri: str, attac
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "analysis": f"failure: {str(e)}",
             "details": {}
+        }
         }
         
 
