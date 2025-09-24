@@ -382,17 +382,17 @@ resource emailAttachmentsContainer 'Microsoft.Storage/storageAccounts/blobServic
   }
 }
 
-// Blob connection
+// Blob connection (Managed Identity) – fix auth parameter name
 var azureBlobConnectionName = '${logicAppName}-blob-conn'
 
 resource azureblobConnection 'Microsoft.Web/connections@2016-06-01' = {
   name: azureBlobConnectionName
   location: location
   properties: {
-    displayName: 'Blob Storage Connection for Email Attachments'
+    displayName: 'Blob Storage Connection (MSI)'
     parameterValues: {
       accountName: storageAccount.name
-      authenticationType: 'ManagedServiceIdentity'
+      authType: 'ManagedServiceIdentity' // fixed (was authenticationType)
     }
     api: {
       id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'azureblob')
