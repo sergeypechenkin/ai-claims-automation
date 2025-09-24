@@ -4,7 +4,7 @@ param appnamePrefix = 'ai-claims-automation'
 param location = 'North Europe'
 param locationShort = 'neu'
 param hostingPlanSku = 'FC1'
-param storageAccountName = 'staiclaimsauto001'
+param storageAccountName = 'staiclaimsauto002'
 param sharedMailboxAddress = 'inbox@oopslab.in'
 // SQL admin values are placeholders; real secrets supplied via CI/CD overrides
 param sqlAdminLogin = 'override-in-ci'
