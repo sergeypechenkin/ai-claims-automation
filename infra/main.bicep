@@ -176,6 +176,22 @@ resource office365Connection 'Microsoft.Web/connections@2016-06-01' = {
   }
 }
 
+var conversionServiceConnectionName = '${logicAppName}-conv-conn'
+
+resource conversionserviceConnection 'Microsoft.Web/connections@2016-06-01' = {
+  name: conversionServiceConnectionName
+  location: location
+  properties: {
+    displayName: 'Content Conversion Connection'
+    customParameterValues: {}
+    api: {
+      id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'conversionservice')
+      displayName: 'Content Conversion'
+      description: 'Convert content between formats (HTML <-> Text, etc).'
+    }
+  }
+}
+
 resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
   name: logicAppName
   location: location
@@ -245,10 +261,10 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           type: 'ApiConnection'
           inputs: {
               host: {
-                connection: {
-                  referenceName: 'conversionservice'
-                }
-              }
+                        connection: {
+                            name: '@parameters(\'$connections\')[\'conversionservice\'][\'connectionId\']'
+                        }
+                    }
               method: 'post'
               path: '/html2text'
             }
@@ -428,6 +444,11 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             connectionId: azureblobConnection.id
             connectionName: azureBlobConnectionName
             id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'azureblob')
+          }
+          conversionservice: {
+            connectionId: conversionserviceConnection.id
+            connectionName: conversionServiceConnectionName
+            id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'conversionservice')
           }
         }
       }
