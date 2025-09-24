@@ -10,5 +10,5 @@ param sharedMailboxAddress = 'inbox@oopslab.in'
 param sqlAdminLogin = 'override-in-ci'
 param sqlAdminPassword = 'Replace_This1!' // overridden by secure pipeline secret
 // Placeholder; real object Id should come from pipeline secret override
-param SERVICE_PRINCIPAL_OID = '00000000-0000-0000-0000-000000000000'
+param servicePrincipalObjectId = '00000000-0000-0000-0000-000000000000'
 

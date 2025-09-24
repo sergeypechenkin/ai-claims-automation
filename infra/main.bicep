@@ -150,16 +150,16 @@ resource logicAppBlobDataContributor 'Microsoft.Authorization/roleAssignments@20
   }
 }
 
-@description('Object ID of external service principal to grant Storage Blob Data Contributor.')
-param SERVICE_PRINCIPAL_OID string
+@description('Object ID (Enterprise App / Service Principal) to grant Storage Blob Data Contributor. Leave empty to skip.')
+param servicePrincipalObjectId string
 
-// Grant Storage Blob Data Contributor to external Service Principal
-resource externalSpBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, SERVICE_PRINCIPAL_OID, storageBlobDataContributorRoleId)
+// Grant Storage Blob Data Contributor to external Service Principal (only if provided)
+resource externalSpBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(servicePrincipalObjectId)) {
+  name: guid(storageAccount.id, servicePrincipalObjectId, storageBlobDataContributorRoleId)
   scope: storageAccount
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRoleId)
-    principalId: SERVICE_PRINCIPAL_OID
+    principalId: servicePrincipalObjectId
     principalType: 'ServicePrincipal'
   }
 }
