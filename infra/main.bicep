@@ -201,6 +201,7 @@ resource conversionserviceConnection 'Microsoft.Web/connections@2016-06-01' = {
 resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
   dependsOn: [
     functionApp  // ensure Function App (host key) exists before Logic App deployment
+    azureblobConnection // ensure the connection is fully created first
   ]
   name: logicAppName
   location: location
@@ -483,7 +484,7 @@ resource emailAttachmentsContainer 'Microsoft.Storage/storageAccounts/blobServic
 }
 
 
-var azureBlobConnectionName = '${logicAppName}-blob-conn-${storageAccountName}'
+var azureBlobConnectionName = '${logicAppName}-blob-conn-${storageAccountName}-v2'
 resource azureblobConnection 'Microsoft.Web/connections@2016-06-01' = {
   name: azureBlobConnectionName
   location: location
