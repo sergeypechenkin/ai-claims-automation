@@ -242,10 +242,16 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
         }
         Html_to_text: {
           runAfter: { Extract_email_data: [ 'Succeeded' ] }
-          type: 'Compose'
+          type: 'ApiConnection'
           inputs: {
-            bodyText: '@htmlToText(outputs(\'Extract_email_data\')[\'bodyContent\'])'
-          }
+              host: {
+                connection: {
+                  referenceName: 'conversionservice'
+                }
+              }
+              method: 'post'
+              path: '/html2text'
+            }
         }
         Init_attachmentUris: {
           runAfter: { Html_to_text: [ 'Succeeded' ] }
