@@ -30,7 +30,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   properties: {
     supportsHttpsTrafficOnly: true
     minimumTlsVersion: 'TLS1_2'
-    allowSharedKeyAccess: true  // Enable account key (shared key) access as requested
+    allowSharedKeyAccess: true  // Enable account key (shared key)
     allowBlobPublicAccess: false // Keep blob public access disabled
     publicNetworkAccess: 'Enabled' // Enable network access for Function App
     networkAcls: {
@@ -150,7 +150,19 @@ resource logicAppBlobDataContributor 'Microsoft.Authorization/roleAssignments@20
   }
 }
 
+@description('Object ID of external service principal to grant Storage Blob Data Contributor.')
+param servicePrincipalObjectId string
 
+// Grant Storage Blob Data Contributor to external Service Principal
+resource externalSpBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, servicePrincipalObjectId, storageBlobDataContributorRoleId)
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRoleId)
+    principalId: servicePrincipalObjectId
+    principalType: 'ServicePrincipal'
+  }
+}
 
 // Create Logic App for email monitoring
 

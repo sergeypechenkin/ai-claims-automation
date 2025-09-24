@@ -37,22 +37,12 @@ az ad sp create-for-rbac \
 
 Add the output as a GitHub secret named `AZURE_CREDENTIALS`.
 
-#### Option B: OpenID Connect (OIDC) - More Secure
-
-```bash
-# Create service principal for OIDC
-az ad sp create-for-rbac \
-  --name "ai-claims-automation-sp" \
-  --role owner \
-  --scopes /subscriptions/YOUR_SUBSCRIPTION_ID
-
-
-
 ### 2. GitHub Secrets Configuration
 
 Add these secrets to your GitHub repository:
 
 - `AZURE_CREDENTIALS`: Service principal JSON (if using SP auth)
+- `SERVICEPRINCIPALOBJECTID`:  Service principal object ID for storage BLOB role (needed for deploying App Service)
 - `AZURE_CLIENT_ID`: Client ID (if using OIDC)
 - `AZURE_TENANT_ID`: Tenant ID (if using OIDC)
 - `AZURE_SUBSCRIPTION_ID`: Subscription ID (if using OIDC)
