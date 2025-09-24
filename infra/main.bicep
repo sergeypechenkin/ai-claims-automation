@@ -251,18 +251,26 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           runAfter: { Html_to_text: [ 'Succeeded' ] }
           type: 'InitializeVariable'
           inputs: {
-            name: 'attachmentUris'
-            type: 'Array'
-            value: []
+            variables: [
+              {
+                name: 'attachmentUris'
+                type: 'Array'
+                value: []
+              }
+            ]
           }
         }
         Init_emailBlobUri: {
           runAfter: { Init_attachmentUris: [ 'Succeeded' ] }
           type: 'InitializeVariable'
           inputs: {
-            name: 'emailBlobUri'
-            type: 'String'
-            value: ''
+            variables: [
+              {
+                name: 'emailBlobUri'
+                type: 'String'
+                value: ''
+              }
+            ]
           }
         }
         Upload_full_email: {
