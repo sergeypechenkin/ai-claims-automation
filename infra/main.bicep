@@ -30,7 +30,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   properties: {
     supportsHttpsTrafficOnly: true
     minimumTlsVersion: 'TLS1_2'
-    allowSharedKeyAccess: false // Disable key-based access for security
+    allowSharedKeyAccess: true  // Enable account key (shared key) access as requested
     allowBlobPublicAccess: false // Keep blob public access disabled
     publicNetworkAccess: 'Enabled' // Enable network access for Function App
     networkAcls: {
