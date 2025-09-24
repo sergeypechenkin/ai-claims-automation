@@ -163,7 +163,7 @@ resource logicAppBlobDataContributor 'Microsoft.Authorization/roleAssignments@20
 @description('Shared mailbox address to monitor')
 param sharedMailboxAddress string
 // Logic App for email processing
-var logicAppName = '${appnamePrefix}-${locationShort}-logic'
+var logicAppName = '${appnamePrefix}-${locationShort}-logic-002'
 var office365ConnectionName = '${logicAppName}-office365-conn'
 // Office 365 API connection
 resource office365Connection 'Microsoft.Web/connections@2016-06-01' = {
@@ -484,15 +484,15 @@ resource emailAttachmentsContainer 'Microsoft.Storage/storageAccounts/blobServic
 }
 
 
-var azureBlobConnectionName = '${logicAppName}-blob-conn-${storageAccountName}-v2'
+var azureBlobConnectionName = '${logicAppName}-blob-conn-${storageAccountName}-v3'
 resource azureblobConnection 'Microsoft.Web/connections@2016-06-01' = {
   name: azureBlobConnectionName
   location: location
   properties: {
-    displayName: 'Blob Storage Connection'
+    displayName: 'Blob Storage Connection-MI'
     parameterValues: {
       accountName: storageAccountName
-      accessKey: listKeys(storageAccount.id, '2023-01-01').keys[0].value
+      authenticationType: 'ManagedServiceIdentity'
     }
     api: {
       id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'azureblob')
