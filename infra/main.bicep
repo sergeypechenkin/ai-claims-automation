@@ -260,14 +260,20 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           runAfter: { Extract_email_data: [ 'Succeeded' ] }
           type: 'ApiConnection'
           inputs: {
-              host: {
-                        connection: {
-                            name: '@parameters(\'$connections\')[\'conversionservice\'][\'connectionId\']'
-                        }
-                    }
-              method: 'post'
-              path: '/html2text'
+            host: {
+              connection: {
+                name: '@parameters(\'$connections\')[\'conversionservice\'][\'connectionId\']'
+              }
             }
+            method: 'post'
+            path: '/html2text'
+            body: {
+              content: '@outputs(\'Extract_email_data\')[\'bodyContent\']'
+              // optional parameters if supported:
+              // inputType: 'html'
+              // outputType: 'text'
+            }
+          }
         }
         Init_attachmentUris: {
           runAfter: { Html_to_text: [ 'Succeeded' ] }
@@ -444,6 +450,12 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             connectionId: azureblobConnection.id
             connectionName: azureBlobConnectionName
             id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'azureblob')
+            connectionProperties: {
+              // Use managed identity for authentication
+              authentication: {
+                type: 'ManagedServiceIdentity'
+              }
+            }
           }
           conversionservice: {
             connectionId: conversionserviceConnection.id
@@ -467,17 +479,16 @@ resource emailAttachmentsContainer 'Microsoft.Storage/storageAccounts/blobServic
   }
 }
 
-// Blob connection (Managed Identity) – fix auth parameter name
+// Blob connection (key-based – managed identity not supported for this connector in Logic Apps Consumption)
 var azureBlobConnectionName = '${logicAppName}-blob-conn'
-
 resource azureblobConnection 'Microsoft.Web/connections@2016-06-01' = {
   name: azureBlobConnectionName
   location: location
   properties: {
-    displayName: 'Blob Storage Connection (MSI)'
+    displayName: 'Blob Storage Connection'
     parameterValues: {
       accountName: storageAccount.name
-      authType: 'ManagedServiceIdentity' // fixed (was authenticationType)
+      accessKey: listKeys(storageAccount.id, '2023-01-01').keys[0].value
     }
     api: {
       id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'azureblob')
