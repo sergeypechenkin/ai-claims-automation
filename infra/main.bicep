@@ -141,7 +141,7 @@ resource functionAppBlobDataContributor 'Microsoft.Authorization/roleAssignments
 
 // ADD RBAC for Logic App managed identity to access blobs via MSI
 resource logicAppBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, stg.name, storageBlobDataContributorRoleId)
+  name: guid(storageAccount.id, stg.name, storageBlobDataContributorRoleId) // Use stg.name instead of stg.identity.principalId
   scope: storageAccount
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRoleId)
@@ -266,11 +266,17 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           }
         }
         Upload_full_email: {
-          runAfter: { Init_emailBlobUri: [ 'Succeeded' ] }
+          runAfter: {
+            Init_emailBlobUri: [
+              'Succeeded'
+            ]
+          }
           type: 'ApiConnection'
           inputs: {
             host: {
-              connection: { name: '@parameters(\'$connections\')[\'azureblob\'][\'connectionId\']' }
+              connection: {
+                name: '@parameters(\'$connections\')[\'azureblob\'][\'connectionId\']'
+              }
             }
             method: 'post'
             path: '/v2/datasets/default/files'
@@ -279,25 +285,68 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
               name: '@{concat(\'message-\', coalesce(outputs(\'Extract_email_data\')[\'messageId\'], guid()), \'.json\')}'
               queryParametersSingleEncoded: true
             }
-            body: '@json(string(outputs(\'Extract_email_data\')))'
-                    queryParametersSingleEncoded: true
-                  }
-                  body: '@base64ToBinary(item()?[\'ContentBytes\'])'
-                }
-              
-        Append_blob_uri: {
-          runAfter: {
-            Upload_attachment_blob: [ 'Succeeded' ]
-          }
-          type: 'AppendToArrayVariable'
-          inputs: {
-            name: 'attachmentUris'
-            value: 'https://${storageAccount.name}.blob.core.windows.net/emailattachments/@{item()?[\'Name\']}'
+            body: '@string(outputs(\'Extract_email_data\'))' // store full JSON as text
           }
         }
-        Call_function_process_email: { 
+        Set_email_blob_uri: {
           runAfter: {
-            For_each_attachments: [ 'Succeeded' ]
+            Upload_full_email: [
+              'Succeeded'
+            ]
+          }
+          type: 'SetVariable'
+          inputs: {
+            name: 'emailBlobUri'
+            value: 'https://${storageAccount.name}.blob.core.windows.net/emailmessages/@{concat(\'message-\', coalesce(outputs(\'Extract_email_data\')[\'messageId\'], guid()), \'.json\')}'
+          }
+        }
+        For_each_attachments: {
+          runAfter: {
+            Set_email_blob_uri: [
+              'Succeeded'
+            ]
+          }
+          foreach: '@outputs(\'Extract_email_data\')[\'attachments\']'
+          type: 'Foreach'
+          actions: {
+            Upload_attachment_blob: {
+              runAfter: {}
+              type: 'ApiConnection'
+              inputs: {
+                host: {
+                  connection: {
+                    name: '@parameters(\'$connections\')[\'azureblob\'][\'connectionId\']'
+                  }
+                }
+                method: 'post'
+                path: '/v2/datasets/default/files'
+                queries: {
+                  folderPath: 'emailattachments'
+                  name: '@item()?[\'Name\']'
+                  queryParametersSingleEncoded: true
+                }
+                body: '@base64ToBinary(item()?[\'ContentBytes\'])'
+              }
+            }
+            Append_blob_uri: {
+              runAfter: {
+                Upload_attachment_blob: [
+                  'Succeeded'
+                ]
+              }
+              type: 'AppendToArrayVariable'
+              inputs: {
+                name: 'attachmentUris'
+                value: 'https://${storageAccount.name}.blob.core.windows.net/emailattachments/@{item()?[\'Name\']}'
+              }
+            }
+          }
+        }
+        Call_function_process_email: {
+          runAfter: {
+            For_each_attachments: [
+              'Succeeded'
+            ]
           }
           type: 'Http'
           inputs: {
@@ -312,6 +361,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
               subject: '@outputs(\'Extract_email_data\')[\'subject\']'
               bodyText: '@outputs(\'Html_to_text\')[\'bodyText\']'
               timestamp: '@utcNow()'
+              emailBlobUri: '@variables(\'emailBlobUri\')'
               attachmentUris: '@variables(\'attachmentUris\')'
             }
             retryPolicy: {
