@@ -450,12 +450,6 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             connectionId: azureblobConnection.id
             connectionName: azureBlobConnectionName
             id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'azureblob')
-            connectionProperties: {
-              // Use managed identity for authentication
-              authentication: {
-                type: 'ManagedServiceIdentity'
-              }
-            }
           }
           conversionservice: {
             connectionId: conversionserviceConnection.id
@@ -479,7 +473,7 @@ resource emailAttachmentsContainer 'Microsoft.Storage/storageAccounts/blobServic
   }
 }
 
-// Blob connection (key-based – managed identity not supported for this connector in Logic Apps Consumption)
+
 var azureBlobConnectionName = '${logicAppName}-blob-conn'
 resource azureblobConnection 'Microsoft.Web/connections@2016-06-01' = {
   name: azureBlobConnectionName
@@ -488,15 +482,13 @@ resource azureblobConnection 'Microsoft.Web/connections@2016-06-01' = {
     displayName: 'Blob Storage Connection'
     parameterValues: {
       accountName: storageAccount.name
-      accessKey: listKeys(storageAccount.id, '2023-01-01').keys[0].value
+      accessKey: storageAccount.listKeys().keys[0].value
     }
     api: {
       id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'azureblob')
     }
   }
 }
-
-
 
 @description('The name of the SQL logical server.')
 var server_name string = toLower('${appnamePrefix}-sqlsrv-${locationShort}')
