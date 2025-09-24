@@ -342,7 +342,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           type: 'SetVariable'
           inputs: {
             name: 'emailBlobUri'
-            value: 'https://${storageAccount.name}.blob.core.windows.net/emailmessages/@{concat(\'message-\', coalesce(outputs(\'Extract_email_data\')[\'messageId\'], guid()), \'.json\')}'
+            value: '@body(\'Upload_full_email\')?.path'
           }
         }
         For_each_attachments: {
@@ -382,7 +382,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
               type: 'AppendToArrayVariable'
               inputs: {
                 name: 'attachmentUris'
-                value: 'https://${storageAccount.name}.blob.core.windows.net/emailattachments/@{item()?[\'Name\']}'
+                value: '@body(\'Upload_attachment_blob\')?.path'
               }
             }
           }
