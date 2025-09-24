@@ -1,7 +1,8 @@
 import azure.functions as func
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
+from datetime import timezone
 from typing import Dict, Any, List
 
 # Initialize the Function App with proper configuration
@@ -67,8 +68,21 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse(json.dumps({"error": "Internal server error"}), status_code=500, mimetype="application/json")
 
 def process_email_metadata(sender: str, subject: str, email_blob_uri: str, attachment_uris: List[str], event_timestamp: str) -> Dict[str, Any]:
+    """
+        processed_timestamp = datetime.now(datetime.timezone.utc).isoformat()
+
+    Args:
+        sender (str): The email sender's address.
+        subject (str): The subject of the email.
+        email_blob_uri (str): URI to the email blob.
+        attachment_uris (List[str]): List of URIs for attachments.
+        event_timestamp (str): Timestamp of the event.
+
+    Returns:
+        return {"timestamp": processed_timestamp, "analysis": analysis, "details": details}
+    """
     try:
-        ts = datetime.utcnow().isoformat()
+        ts = datetime.now(timezone.utc).isoformat()
         analysis = f"Email from {sender} '{subject}' stored. {len(attachment_uris)} attachment blobs."
         details = {
             "sender_domain": sender.split('@')[-1] if '@' in sender else "unknown",
@@ -81,23 +95,12 @@ def process_email_metadata(sender: str, subject: str, email_blob_uri: str, attac
         return {"timestamp": ts, "analysis": analysis, "details": details}
     except Exception as e:
         logging.error(f'processing failure: {e}', exc_info=True)
-        return {"timestamp": datetime.utcnow().isoformat(), "analysis": "failure", "details": {}}
-        )
+        return {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "analysis": f"failure: {str(e)}",
+            "details": {}
+        }
         
-    except ValueError as e:
-        logging.error(f'JSON parsing error: {str(e)}')
-        return func.HttpResponse(
-            json.dumps({"error": "Invalid JSON format"}),
-            status_code=400,
-            mimetype="application/json"
-        )
-    except Exception as e:
-        logging.error(f'Error processing email: {e}', exc_info=True)
-        return func.HttpResponse(
-            json.dumps({"error": "Internal server error"}),
-            status_code=500,
-            mimetype="application/json"
-        )
 
 def process_email_data(sender: str, subject: str, body_text: str, attachment_uris: List[str], event_timestamp: str) -> Dict[str, Any]:
     """
@@ -141,10 +144,3 @@ def process_email_data(sender: str, subject: str, body_text: str, attachment_uri
             "details": analysis_result
         }
         
-    except Exception as e:
-        logging.error(f'Error in process_email_data: {str(e)}', exc_info=True)
-        return {
-            "timestamp": datetime.utcnow().isoformat(),
-            "analysis": f"Error processing email: {str(e)}",
-            "details": {}
-        }

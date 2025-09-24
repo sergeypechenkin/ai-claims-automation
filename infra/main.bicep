@@ -139,6 +139,19 @@ resource functionAppBlobDataContributor 'Microsoft.Authorization/roleAssignments
   }
 }
 
+// ADD RBAC for Logic App managed identity to access blobs via MSI
+resource logicAppBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, stg.name, storageBlobDataContributorRoleId)
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRoleId)
+    principalId: stg.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+
+
 // Create Logic App for email monitoring
 
 @description('Shared mailbox address to monitor')
@@ -215,6 +228,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
         }
       }
       actions: {
+        // Call_function_process_email action moved to the correct location under actions
         Extract_email_data: {
           runAfter: {}
           type: 'Compose'
@@ -270,20 +284,18 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
                   }
                   body: '@base64ToBinary(item()?[\'ContentBytes\'])'
                 }
-              }
-              Append_blob_uri: {
-                runAfter: {
-                  Upload_attachment_blob: [ 'Succeeded' ]
-                }
-                type: 'AppendToArrayVariable'
-                inputs: {
-                  name: 'attachmentUris'
-                  value: 'https://${storageAccount.name}.blob.core.windows.net/emailattachments/@{item()?[\'Name\']}'
-                }
-              }
-            }
+              
+        Append_blob_uri: {
+          runAfter: {
+            Upload_attachment_blob: [ 'Succeeded' ]
+          }
+          type: 'AppendToArrayVariable'
+          inputs: {
+            name: 'attachmentUris'
+            value: 'https://${storageAccount.name}.blob.core.windows.net/emailattachments/@{item()?[\'Name\']}'
+          }
         }
-        Call_function_process_email: {
+        Call_function_process_email: { 
           runAfter: {
             For_each_attachments: [ 'Succeeded' ]
           }
@@ -362,7 +374,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
   }
 }
 
-// Дополнительный контейнер для вложений
+// Container for attachments
 resource emailAttachmentsContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
   name: '${storageAccount.name}/default/emailattachments'
   properties: {
@@ -370,7 +382,7 @@ resource emailAttachmentsContainer 'Microsoft.Storage/storageAccounts/blobServic
   }
 }
 
-// Подключение Azure Blob
+// Blob connection
 var azureBlobConnectionName = '${logicAppName}-blob-conn'
 
 resource azureblobConnection 'Microsoft.Web/connections@2016-06-01' = {
@@ -380,17 +392,15 @@ resource azureblobConnection 'Microsoft.Web/connections@2016-06-01' = {
     displayName: 'Blob Storage Connection for Email Attachments'
     parameterValues: {
       accountName: storageAccount.name
-      accessKey: listKeys(storageAccount.id, '2023-01-01').keys[0].value
+      authenticationType: 'ManagedServiceIdentity'
     }
     api: {
       id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'azureblob')
-      displayName: 'Azure Blob Storage'
-      description: 'Azure Blob Storage connector'
-      iconUri: 'https://connectoricons-prod.azureedge.net/releases/v1.0.1664/1.0.1664.3477/azureblob/icon.png'
-      brandColor: '#804998'
     }
   }
 }
+
+
 
 @description('The name of the SQL logical server.')
 var server_name string = toLower('${appnamePrefix}-sqlsrv-${locationShort}')
