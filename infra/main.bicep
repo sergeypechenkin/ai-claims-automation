@@ -326,7 +326,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             }
             method: 'post'
             //https://learn.microsoft.com/en-us/connectors/azureblobconnector/#connect-to-azure-blob-connector-using-blob-endpoint
-            path: storageAccount.properties.primaryEndpoints.blob
+            path: '/v2/datasets/default/files'
             queries: {
               folderPath: 'emailmessages'
               name: '@{concat(timestamp(), \'-message-\', coalesce(outputs(\'Extract_email_data\')[\'messageId\'], guid()), \'.json\')}'
@@ -366,7 +366,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
                   }
                 }
                 method: 'post'
-                path: storageAccount.properties.primaryEndpoints.blob
+                path: '/v2/datasets/default/files'
                 queries: {
                   folderPath: 'emailattachments'
                   name: '@{concat(\'Timestamp\', item()?[\'Name\'])}'
