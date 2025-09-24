@@ -48,6 +48,14 @@ resource deploymentsContainer 'Microsoft.Storage/storageAccounts/blobServices/co
   }
 }
 
+// ADD: emailmessages container required by Logic App (folderPath=emailmessages)
+resource emailMessagesContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
+  name: '${storageAccount.name}/default/emailmessages'
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
 var functionAppName = '${appnamePrefix}-${locationShort}-func'
 
 // Create hosting plan (Flex Consumption)
@@ -472,7 +480,7 @@ resource emailAttachmentsContainer 'Microsoft.Storage/storageAccounts/blobServic
 }
 
 
-var azureBlobConnectionName = '${logicAppName}-blob-conn'
+var azureBlobConnectionName = '${logicAppName}-blob-conn-${storageAccountName}'
 resource azureblobConnection 'Microsoft.Web/connections@2016-06-01' = {
   name: azureBlobConnectionName
   location: location
@@ -480,7 +488,7 @@ resource azureblobConnection 'Microsoft.Web/connections@2016-06-01' = {
     displayName: 'Blob Storage Connection'
     parameterValues: {
       accountName: storageAccount.name
-      accessKey: storageAccount.listKeys().keys[0].value
+      accessKey: listKeys(storageAccount.id, '2023-01-01').keys[0].value
     }
     api: {
       id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'azureblob')
