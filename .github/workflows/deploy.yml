@@ -15,6 +15,7 @@ env:
   SQL_ADMIN_LOGIN: ${{ secrets.SQLADMINLOGIN }}
   SQL_ADMIN_PASSWORD: ${{ secrets.SQLADMINPASSWORD }}
   RG_TAGS: "environment=dev SecurityControl=Ignore"
+  SERVICE_PRINCIPAL_OID: ${{ secrets.SERVICE_PRINCIPAL_OBJECT_ID }}
 
 jobs:
   deploy-infrastructure:
@@ -60,8 +61,7 @@ jobs:
           --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
           --template-file infra/main.bicep \
           --parameters infra/main.bicepparam \
-          --parameters sqlAdminLogin=$SQL_ADMIN_LOGIN sqlAdminPassword=$SQL_ADMIN_PASSWORD \
-          --parameters SERVICEPRINCIPALOBJECTID=$SERVICEPRINCIPALOBJECTID
+          --parameters sqlAdminLogin=$SQL_ADMIN_LOGIN sqlAdminPassword=$SQL_ADMIN_PASSWORD servicePrincipalObjectId=$SERVICE_PRINCIPAL_OID \
           --verbose --debug
         
         # Get outputs separately to avoid consumption issue

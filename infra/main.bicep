@@ -151,15 +151,15 @@ resource logicAppBlobDataContributor 'Microsoft.Authorization/roleAssignments@20
 }
 
 @description('Object ID of external service principal to grant Storage Blob Data Contributor.')
-param servicePrincipalObjectId string
+param SERVICE_PRINCIPAL_OID string
 
 // Grant Storage Blob Data Contributor to external Service Principal
 resource externalSpBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(storageAccount.id, servicePrincipalObjectId, storageBlobDataContributorRoleId)
+  name: guid(storageAccount.id, SERVICE_PRINCIPAL_OID, storageBlobDataContributorRoleId)
   scope: storageAccount
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRoleId)
-    principalId: servicePrincipalObjectId
+    principalId: SERVICE_PRINCIPAL_OID
     principalType: 'ServicePrincipal'
   }
 }
