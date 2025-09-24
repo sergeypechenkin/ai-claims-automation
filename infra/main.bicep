@@ -150,20 +150,6 @@ resource logicAppBlobDataContributor 'Microsoft.Authorization/roleAssignments@20
   }
 }
 
-@description('Object ID (Enterprise App / Service Principal) to grant Storage Blob Data Contributor. Leave empty to skip.')
-param servicePrincipalObjectId string
-
-// Grant Storage Blob Data Contributor to external Service Principal (only if provided)
-resource externalSpBlobDataContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(servicePrincipalObjectId)) {
-  name: guid(storageAccount.id, servicePrincipalObjectId, storageBlobDataContributorRoleId)
-  scope: storageAccount
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRoleId)
-    principalId: servicePrincipalObjectId
-    principalType: 'ServicePrincipal'
-  }
-}
-
 // Create Logic App for email monitoring
 
 @description('Shared mailbox address to monitor')

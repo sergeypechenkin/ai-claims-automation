@@ -34,6 +34,19 @@ az ad sp create-for-rbac \
   --scopes /subscriptions/YOUR_SUBSCRIPTION_ID \
   --sdk-auth
 ```
+# Grant Service Principal Role: Blob Contributor on a Resource Group
+
+To grant the Service Principal the `Blob Contributor` role on a specific resource group, use the following Azure CLI command:
+
+```bash
+# Assign Blob Contributor role to the Service Principal
+az role assignment create \
+  --assignee <SERVICE_PRINCIPAL_APP_ID> \
+  --role "Storage Blob Data Contributor" \
+  --scope /subscriptions/<SUBSCRIPTION_ID>/resourceGroups/<RESOURCE_GROUP_NAME>
+```
+
+Replace `<SERVICE_PRINCIPAL_APP_ID>`, `<SUBSCRIPTION_ID>`, and `<RESOURCE_GROUP_NAME>` with the appropriate values for your setup.
 
 Add the output as a GitHub secret named `AZURE_CREDENTIALS`.
 
@@ -42,7 +55,6 @@ Add the output as a GitHub secret named `AZURE_CREDENTIALS`.
 Add these secrets to your GitHub repository:
 
 - `AZURE_CREDENTIALS`: Service principal JSON (if using SP auth)
-- `SERVICEPRINCIPALOBJECTID`:  Service principal object ID for storage BLOB role (needed for deploying App Service)
 - `AZURE_CLIENT_ID`: Client ID (if using OIDC)
 - `AZURE_TENANT_ID`: Tenant ID (if using OIDC)
 - `AZURE_SUBSCRIPTION_ID`: Subscription ID (if using OIDC)
