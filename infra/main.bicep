@@ -484,7 +484,7 @@ resource emailAttachmentsContainer 'Microsoft.Storage/storageAccounts/blobServic
 }
 
 
-var azureBlobConnectionName = '${logicAppName}-blob-conn-${storageAccountName}-v3'
+var azureBlobConnectionName = '${logicAppName}-blob-conn-${storageAccountName}-v4'
 resource azureblobConnection 'Microsoft.Web/connections@2016-06-01' = {
   name: azureBlobConnectionName
   location: location
@@ -492,7 +492,7 @@ resource azureblobConnection 'Microsoft.Web/connections@2016-06-01' = {
     displayName: 'Blob Storage Connection-MI'
     parameterValues: {
       accountName: storageAccountName
-      authenticationType: 'ManagedServiceIdentity'
+      accessKey: storageAccount.listKeys().keys[0].value
     }
     api: {
       id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'azureblob')
