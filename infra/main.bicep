@@ -325,10 +325,11 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
               }
             }
             method: 'post'
-            path: '/v2/datasets/default/files'
+            //https://learn.microsoft.com/en-us/connectors/azureblobconnector/#connect-to-azure-blob-connector-using-blob-endpoint
+            path: storageAccount.properties.primaryEndpoints.blob
             queries: {
               folderPath: 'emailmessages'
-              name: '@{concat(\'message-\', coalesce(outputs(\'Extract_email_data\')[\'messageId\'], guid()), \'.json\')}'
+              name: '@{concat(timestamp(), \'-message-\', coalesce(outputs(\'Extract_email_data\')[\'messageId\'], guid()), \'.json\')}'
               queryParametersSingleEncoded: true
             }
             body: '@string(outputs(\'Extract_email_data\'))' // store full JSON as text
@@ -365,10 +366,10 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
                   }
                 }
                 method: 'post'
-                path: '/v2/datasets/default/files'
+                path: storageAccount.properties.primaryEndpoints.blob
                 queries: {
                   folderPath: 'emailattachments'
-                  name: '@item()?[\'Name\']'
+                  name: '@{concat(\'Timestamp\', item()?[\'Name\'])}'
                   queryParametersSingleEncoded: true
                 }
                 body: '@base64ToBinary(item()?[\'ContentBytes\'])'
@@ -489,9 +490,9 @@ resource azureblobConnection 'Microsoft.Web/connections@2016-06-01' = {
   name: azureBlobConnectionName
   location: location
   properties: {
-    displayName: 'Blob Storage Connection-MI'
+    displayName: 'Blob Storage Connection-Keys'
     parameterValues: {
-      accountName: storageAccountName
+      accountName: storageAccount.properties.primaryEndpoints.blob
       accessKey: storageAccount.listKeys().keys[0].value
     }
     api: {
