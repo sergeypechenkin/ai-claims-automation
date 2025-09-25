@@ -413,7 +413,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             body: {
               sender: '@outputs(\'Extract_email_data\')[\'sender\']'
               subject: '@outputs(\'Extract_email_data\')[\'subject\']'
-              bodyText: '@outputs(\'Html_to_text\')[\'bodyText\']'
+              bodyText: '@outputs(\'Html_to_text\')[\'body\']'
               timestamp: '@utcNow()'
               emailBlobUri: '@variables(\'emailBlobUri\')'
               attachmentUris: '@variables(\'attachmentUris\')'
