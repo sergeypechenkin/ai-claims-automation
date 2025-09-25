@@ -329,7 +329,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             path: '/v2/datasets/default/files'
             queries: {
               folderPath: 'emailmessages'
-              name: '@{concat(timestamp(), \'-message-\', coalesce(outputs(\'Extract_email_data\')[\'messageId\'], guid()), \'.json\')}'
+              name: '@concat(formatDateTime(utcNow(), \'yyyyMMddHHmmss\'), \'-message-\', coalesce(outputs(\'Extract_email_data\')[\'messageId\'], guid()), \'.msg\')'
               queryParametersSingleEncoded: true
             }
             body: '@string(outputs(\'Extract_email_data\'))' // store full JSON as text
@@ -369,7 +369,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
                 path: '/v2/datasets/default/files'
                 queries: {
                   folderPath: 'emailattachments'
-                  name: '@{concat(\'Timestamp\', item()?[\'Name\'])}'
+                  name: '@concat(\'Timestamp\', item()?[\'Name\'])'
                   queryParametersSingleEncoded: true
                 }
                 body: '@base64ToBinary(item()?[\'ContentBytes\'])'
