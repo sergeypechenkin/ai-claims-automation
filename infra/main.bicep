@@ -326,8 +326,8 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             }
             method: 'post'
             //https://learn.microsoft.com/en-us/connectors/azureblobconnector/#connect-to-azure-blob-connector-using-blob-endpoint
-           // path: '/v2/datasets/@{encodeURIComponent(string(storageAccount.properties.primaryEndpoints.blob))}/files'
-            path: '/v2/datasets/@{encodeURIComponent(encodeURIComponent(string(storageAccount.properties.primaryEndpoints.blob)))}]/files'
+            path: '/v2/datasets/@{encodeURIComponent(string(storageAccount.properties.primaryEndpoints.blob))}/files'
+            //path: '/v2/datasets/@{encodeURIComponent(encodeURIComponent(string(storageAccount.properties.primaryEndpoints.blob)))}]/files'
 
             queries: {
               folderPath: 'emailmessages'
@@ -368,7 +368,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
                   }
                 }
                 method: 'post'
-                path: '/v2/datasets/@{encodeURIComponent(encodeURIComponent(string(storageAccount.properties.primaryEndpoints.blob)))}]/files'
+                path: '/v2/datasets/@{encodeURIComponent(string(storageAccount.properties.primaryEndpoints.blob))}/files'
                 queries: {
                   folderPath: 'emailattachments'
                   name: '@concat(\'Timestamp\', item()?[\'Name\'])'
