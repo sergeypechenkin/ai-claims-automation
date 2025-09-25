@@ -198,6 +198,8 @@ resource conversionserviceConnection 'Microsoft.Web/connections@2016-06-01' = {
   }
 }
 
+var blobServiceEndpoint = string(storageAccount.properties.primaryEndpoints.blob)
+
 resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
   dependsOn: [
     functionApp  // ensure Function App (host key) exists before Logic App deployment
@@ -326,9 +328,11 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             }
             method: 'post'
             //https://learn.microsoft.com/en-us/connectors/azureblobconnector/#connect-to-azure-blob-connector-using-blob-endpoint
-            path: '/v2/datasets/@{uriComponent(string(storageAccount.properties.primaryEndpoints.blob))}/files'
+            //path: '/v2/datasets/@{uriComponent(string(storageAccount.properties.primaryEndpoints.blob))}/files'
             //path: '/v2/datasets/@{encodeURIComponent(string(storageAccount.properties.primaryEndpoints.blob))}/files'
             //path: '/v2/datasets/@{encodeURIComponent(encodeURIComponent(string(storageAccount.properties.primaryEndpoints.blob)))}]/files'
+            path: '/v2/datasets/@{encodeURIComponent(encodeURIComponent(\'${blobServiceEndpoint}\'))}/files'
+
 
             queries: {
               folderPath: 'emailmessages'
@@ -369,7 +373,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
                   }
                 }
                 method: 'post'
-                path: '/v2/datasets/@{uriComponent(string(storageAccount.properties.primaryEndpoints.blob))}/files'
+                path: '/v2/datasets/@{encodeURIComponent(encodeURIComponent(\'${blobServiceEndpoint}\'))}/files'
                 queries: {
                   folderPath: 'emailattachments'
                   name: '@concat(\'Timestamp\', item()?[\'Name\'])'
