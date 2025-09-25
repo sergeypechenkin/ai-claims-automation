@@ -99,7 +99,7 @@ def process_email_metadata(sender: str, subject: str, email_blob_uri: str, attac
             "analysis": f"failure: {str(e)}",
             "details": {}
         }
-        }
+        
         
 
 def process_email_data(sender: str, subject: str, body_text: str, attachment_uris: List[str], event_timestamp: str) -> Dict[str, Any]:
