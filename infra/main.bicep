@@ -364,21 +364,22 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           actions: {
             Upload_attachment_blob: {
               runAfter: {}
+              condition: '@and(greater(coalesce(item()?.Size, 0), 61440), contains(createArray(\'image/jpeg\', \'image/jpg\', \'image/png\', \'image/gif\'), toLower(coalesce(item()?.ContentType, \'\'))))'
               type: 'ApiConnection'
               inputs: {
-                host: {
-                  connection: {
-                    name: '@parameters(\'$connections\')[\'azureblob\'][\'connectionId\']'
-                  }
-                }
-                method: 'post'
-                path: '/v2/datasets/@{encodeURIComponent(encodeURIComponent(\'${blobServiceEndpoint}\'))}/files'
-                queries: {
-                  folderPath: 'emailattachments'
-                  name: '@concat(formatDateTime(utcNow(), "yyyyMMddHHmmss"), "_", item()?[\'Name\'])'
-                  queryParametersSingleEncoded: true
-                }
-                body: '@base64ToBinary(item()?[\'ContentBytes\'])'
+          host: {
+            connection: {
+              name: '@parameters(\'$connections\')[\'azureblob\')[\'connectionId\']'
+            }
+          }
+          method: 'post'
+          path: '/v2/datasets/@{encodeURIComponent(encodeURIComponent(\'${blobServiceEndpoint}\'))}/files'
+          queries: {
+            folderPath: 'emailattachments'
+            name: '@concat(formatDateTime(utcNow(), \'yyyyMMddHHmmss\'), \'_\', item()?[\'Name\'])'
+            queryParametersSingleEncoded: true
+          }
+          body: '@base64ToBinary(item()?[\'ContentBytes\'])'
               }
             }
             Append_blob_uri: {
