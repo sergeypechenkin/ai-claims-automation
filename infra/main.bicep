@@ -375,7 +375,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
                 path: '/v2/datasets/@{encodeURIComponent(encodeURIComponent(\'${blobServiceEndpoint}\'))}/files'
                 queries: {
                   folderPath: 'emailattachments'
-                  name: '@concat(\'Timestamp\', item()?[\'Name\'])'
+                  name: '@concat(formatDateTime(utcNow(), "yyyyMMddHHmmss"), "_", item()?[\'Name\'])'
                   queryParametersSingleEncoded: true
                 }
                 body: '@base64ToBinary(item()?[\'ContentBytes\'])'
