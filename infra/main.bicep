@@ -326,7 +326,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
               }
             }
             method: 'post'
-            //https://learn.microsoft.com/en-us/connectors/azureblobconnector/#connect-to-azure-blob-connector-using-blob-endpoint
+            //https://learn.microsoft.com/en-us/connectors/azure-blob-connector/#connect-to-azure-blob-connector-using-blob-endpoint
             //path: '/v2/datasets/@{uriComponent(string(storageAccount.properties.primaryEndpoints.blob))}/files'
             //path: '/v2/datasets/@{encodeURIComponent(string(storageAccount.properties.primaryEndpoints.blob))}/files'
             //path: '/v2/datasets/@{encodeURIComponent(encodeURIComponent(string(storageAccount.properties.primaryEndpoints.blob)))}]/files'
@@ -363,8 +363,8 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           type: 'Foreach'
           actions: {
             If_valid_attachment: {
-              // Changed expression: process all except small (<=60KB) images
-              expression: '@not(and(lessOrEqual(coalesce(item()?.Size, 0), 61440), contains(createArray(\'image/jpeg\', \'image/jpg\', \'image/png\', \'image/gif\'), toLower(coalesce(item()?.ContentType, \'\')))))'
+              // Changed function name lessOrEqual -> lessOrEquals
+              expression: '@not(and(lessOrEquals(coalesce(item()?.Size, 0), 61440), contains(createArray(\'image/jpeg\', \'image/jpg\', \'image/png\', \'image/gif\'), toLower(coalesce(item()?.ContentType, \'\')))))'
               type: 'If'
               actions: {
                 Upload_attachment_blob: {
