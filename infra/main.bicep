@@ -362,36 +362,47 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           foreach: '@outputs(\'Extract_email_data\')[\'attachments\']'
           type: 'Foreach'
           actions: {
-            Upload_attachment_blob: {
-              runAfter: {}
-              condition: '@and(greater(coalesce(item()?.Size, 0), 61440), contains(createArray(\'image/jpeg\', \'image/jpg\', \'image/png\', \'image/gif\'), toLower(coalesce(item()?.ContentType, \'\'))))'
-              type: 'ApiConnection'
-              inputs: {
-          host: {
-            connection: {
-              name: '@parameters(\'$connections\')[\'azureblob\')[\'connectionId\']'
-            }
-          }
-          method: 'post'
-          path: '/v2/datasets/@{encodeURIComponent(encodeURIComponent(\'${blobServiceEndpoint}\'))}/files'
-          queries: {
-            folderPath: 'emailattachments'
-            name: '@concat(formatDateTime(utcNow(), \'yyyyMMddHHmmss\'), \'_\', item()?[\'Name\'])'
-            queryParametersSingleEncoded: true
-          }
-          body: '@base64ToBinary(item()?[\'ContentBytes\'])'
+            // REPLACED invalid Upload_attachment_blob with If_valid_attachment wrapper
+            If_valid_attachment: {
+              type: 'If'
+              expression: '@and(greater(coalesce(item()?.Size, 0), 61440), contains(createArray(\'image/jpeg\', \'image/jpg\', \'image/png\', \'image/gif\'), toLower(coalesce(item()?.ContentType, \'\'))))'
+              actions: {
+                Upload_attachment_blob: {
+                  runAfter: {}
+                  type: 'ApiConnection'
+                  inputs: {
+                    host: {
+                      connection: {
+                        name: '@parameters(\'$connections\')[\'azureblob\'][\'connectionId\']' // fixed bracket
+                      }
+                    }
+                    method: 'post'
+                    path: '/v2/datasets/@{encodeURIComponent(encodeURIComponent(\'${blobServiceEndpoint}\'))}/files'
+                    queries: {
+                      folderPath: 'emailattachments'
+                      name: '@concat(formatDateTime(utcNow(), \'yyyyMMddHHmmss\'), \'_\', item()?[\'Name\'])'
+                      queryParametersSingleEncoded: true
+                    }
+                    body: '@base64ToBinary(item()?[\'ContentBytes\'])'
+                  }
+                }
+                Append_blob_uri: {
+                  runAfter: {
+                    Upload_attachment_blob: [
+                      'Succeeded'
+                    ]
+                  }
+                  type: 'AppendToArrayVariable'
+                  inputs: {
+                    name: 'attachmentUris'
+                    value: '@body(\'Upload_attachment_blob\')?.path'
+                  }
+                }
               }
-            }
-            Append_blob_uri: {
-              runAfter: {
-                Upload_attachment_blob: [
-                  'Succeeded'
-                ]
-              }
-              type: 'AppendToArrayVariable'
-              inputs: {
-                name: 'attachmentUris'
-                value: '@body(\'Upload_attachment_blob\')?.path'
+              else: {
+                actions: {
+                  // No action when attachment does not meet criteria
+                }
               }
             }
           }
