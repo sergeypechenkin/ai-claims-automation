@@ -224,9 +224,8 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           defaultValue: {}
           type: 'Object'
         }
-        functionAppKey: {
-          type: 'securestring'
-          defaultValue: ''
+          functionAppKey: {
+          type: 'string'
         }
       }
       triggers: {
@@ -405,10 +404,10 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           type: 'Http'
           inputs: {
             method: 'POST'
-            uri: 'https://${functionApp.properties.defaultHostName}/api/process_email'
+            uri: 'https://${functionApp.properties.defaultHostName}/api/process_email?code=@{parameters(\'functionAppKey\')}'
             headers: {
               'Content-Type': 'application/json'
-              'x-functions-key': '@parameters(\'functionAppKey\')'
+              // removed x-functions-key header; key now passed via query string
             }
             body: {
               sender: '@outputs(\'Extract_email_data\')[\'sender\']'
@@ -477,7 +476,8 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
         }
       }
       functionAppKey: {
-        value: listkeys(resourceId('Microsoft.Web/sites/host', functionAppName, 'default'), '2023-01-01').masterKey
+        // Use default host function key (more stable) with correct API version
+        value: listKeys(resourceId('Microsoft.Web/sites/host', functionAppName, 'default'), '2022-09-01').functionKeys.default
       }
     }
   }
