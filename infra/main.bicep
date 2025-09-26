@@ -362,10 +362,10 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           foreach: '@outputs(\'Extract_email_data\')[\'attachments\']'
           type: 'Foreach'
           actions: {
-            // REPLACED invalid Upload_attachment_blob with If_valid_attachment wrapper
             If_valid_attachment: {
+              // Changed expression: process all except small (<=60KB) images
+              expression: '@not(and(lessOrEqual(coalesce(item()?.Size, 0), 61440), contains(createArray(\'image/jpeg\', \'image/jpg\', \'image/png\', \'image/gif\'), toLower(coalesce(item()?.ContentType, \'\')))))'
               type: 'If'
-              expression: '@and(greater(coalesce(item()?.Size, 0), 61440), contains(createArray(\'image/jpeg\', \'image/jpg\', \'image/png\', \'image/gif\'), toLower(coalesce(item()?.ContentType, \'\'))))'
               actions: {
                 Upload_attachment_blob: {
                   runAfter: {}
@@ -401,7 +401,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
               }
               else: {
                 actions: {
-                  // No action when attachment does not meet criteria
+                  // skipped small inline image
                 }
               }
             }
