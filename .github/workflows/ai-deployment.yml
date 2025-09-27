@@ -17,6 +17,7 @@ env:
   HUB_NAME: 'ai-foundry-hub-ne'
   PROJECT_NAME: 'ai-foundry-proj-ne'
   TAGS: 'environment=dev workload=aifoundry'
+  AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
 jobs:
   deploy-ai:
