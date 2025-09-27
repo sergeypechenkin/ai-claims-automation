@@ -19,6 +19,9 @@ param storageAccountName string
 ])
 param hostingPlanSku string
 
+@description('Azure AI Foundry project name')
+param aiProjectName string = toLower('${appnamePrefix}-aip-${locationShort}')
+
 // Create storage account
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   name: storageAccountName
@@ -569,6 +572,7 @@ resource sqlServerFirewallRuleAzure 'Microsoft.Sql/servers/firewallRules@2022-05
   }
 }
 
+
 @description('The name of the deployed function app.')
 output functionAppName string = functionApp.name
 
@@ -610,5 +614,24 @@ output sqlServerName string = sqlServer.name
 
 // Storage Blob Data Contributor role definition ID
 var storageBlobDataContributorRoleId = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+
+// --- AI Foundry Project Module Invocation ---
+module aiFoundry 'modules/aiFoundryProject.bicep' = {
+  name: 'aiFoundryProject'
+  params: {
+    location: location
+    projectName: aiProjectName
+  }
+}
+// --- end AI Foundry module ---
+
+@description('Azure AI Hub name.')
+output aiHubName string = aiFoundry.outputs.hubName
+
+@description('Azure AI Project name.')
+output aiProjectNameOut string = aiFoundry.outputs.projectName
+
+@description('Azure AI Project resource ID.')
+output aiProjectId string = aiFoundry.outputs.projectId
 
 

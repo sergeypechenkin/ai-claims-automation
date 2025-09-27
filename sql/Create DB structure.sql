@@ -55,7 +55,7 @@ CREATE TABLE AISummaries (
 
 
 INSERT INTO PolicyHolders (FirstName, LastName, Email)
-VALUES ('Sergey', 'Pechenkin', 'sergeype@hotmail.com');
+VALUES ('Sergey', 'Pechenkin', 'sergeype@microsoft.com');
 
 SELECT 
     c.ClaimId,
