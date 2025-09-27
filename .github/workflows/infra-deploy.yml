@@ -1,4 +1,4 @@
-name: Deploy Azure Function
+name: Deploy Infra - Function, Logic Apps, SQL DB, Storage
 
 on:
   push:
