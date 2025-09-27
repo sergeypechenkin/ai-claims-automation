@@ -21,6 +21,7 @@ env:
 jobs:
   deploy-ai:
     runs-on: ubuntu-latest
+    environment: dev
     steps:
       - name: Checkout
         uses: actions/checkout@v4
