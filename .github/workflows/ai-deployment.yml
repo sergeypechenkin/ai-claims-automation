@@ -17,7 +17,6 @@ env:
   HUB_NAME: 'ai-foundry-hub-ne'
   PROJECT_NAME: 'ai-foundry-proj-ne'
   TAGS: 'environment=dev workload=aifoundry'
-  AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
 jobs:
   deploy-ai:
@@ -32,6 +31,8 @@ jobs:
             echo "Missing AZURE_CREDENTIALS"
             exit 1
           fi
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Azure Login
         uses: azure/login@v2
