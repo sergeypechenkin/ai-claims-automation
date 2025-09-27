@@ -1,4 +1,4 @@
-@description('Deployment location')
+@description('Deployment location (must be a region that supports Microsoft.AzureAI preview).')
 param location string
 
 @description('Azure AI Hub name')
