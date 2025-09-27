@@ -1,0 +1,62 @@
+name: Deploy AI Foundry
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'ai/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'ai/**'
+  workflow_dispatch:
+
+env:
+  AI_RESOURCE_GROUP: rg-ai-foundry
+  AI_LOCATION: 'North Europe'
+  HUB_NAME: 'ai-foundry-hub-ne'
+  PROJECT_NAME: 'ai-foundry-proj-ne'
+  TAGS: 'environment=dev workload=aifoundry'
+
+jobs:
+  deploy-ai:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Azure credentials secret
+        run: |
+          if [ -z "${{ secrets.AZURE_CREDENTIALS }}" ]; then
+            echo "Missing AZURE_CREDENTIALS"
+            exit 1
+          fi
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Create / Update Resource Group
+        run: |
+          az group create \
+            --name "$AI_RESOURCE_GROUP" \
+            --location "$AI_LOCATION" \
+            --tags $TAGS
+
+      - name: Deploy AI Foundry Hub + Project (Bicep)
+        id: deploy
+        run: |
+          az deployment group create \
+            --name aiFoundryDeploy \
+            --resource-group "$AI_RESOURCE_GROUP" \
+            --template-file ai/aiFoundry.bicep \
+            --parameters location="$AI_LOCATION" hubName="$HUB_NAME" projectName="$PROJECT_NAME" \
+            --verbose
+
+          outputs=$(az deployment group show \
+            --resource-group "$AI_RESOURCE_GROUP" \
+            --name aiFoundryDeploy \
+            --query properties.outputs -o json)
+
+          echo "Deployment outputs: $outputs"

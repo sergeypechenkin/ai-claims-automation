@@ -610,5 +610,3 @@ output sqlServerName string = sqlServer.name
 
 // Storage Blob Data Contributor role definition ID
 var storageBlobDataContributorRoleId = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-
-
