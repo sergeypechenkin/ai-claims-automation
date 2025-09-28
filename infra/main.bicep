@@ -569,25 +569,6 @@ resource sqlServerFirewallRuleAzure 'Microsoft.Sql/servers/firewallRules@2022-05
   }
 }
 
-
-module aiHubModule '../ai/aih.bicep' = {
-  name: 'deploy-aihub'
-  params: {
-    hubName: 'aih-dev-sweedancentral-001'
-    location: 'swedencentral'
-    storageAccountName: 'staihdevswedencentral001'
-    keyVaultName: 'kv-aih-dev-sweedancentral-001'
-    acrName: 'acraihdevswedencentral001'
-    appInsightsName: 'appi-aih-dev-sweedancentral-001'
-    cogName: 'cogaihdevswedencentral001'
-    tags: {
-      env: 'dev'
-    }
-  }
-}
-
-
-
 @description('The name of the deployed function app.')
 output functionAppName string = functionApp.name
 
