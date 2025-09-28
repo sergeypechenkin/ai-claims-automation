@@ -14,8 +14,8 @@ on:
 env:
   AI_RESOURCE_GROUP: rg-ai-foundry
   AI_LOCATION: 'Sweden Central'
-  HUB_NAME: 'ai-foundry-hub-ne'
-  PROJECT_NAME: 'ai-foundry-proj-ne'
+  HUB_NAME: 'ai-foundry-hub-swc'
+  PROJECT_NAME: 'ai-foundry-proj-swc'
   TAGS: 'environment=dev SecurityControl=Ignore'
 
 jobs:
