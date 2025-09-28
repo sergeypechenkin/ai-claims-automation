@@ -12,10 +12,4 @@ param cogName = 'aoai-dev-swedencentral-001'
 param cogKind = 'OpenAI'
 param cogSkuName = 'S0'
 
-param projectName = 'project-001'
-
-param tags = {
-  env: 'prod'
-  owner: 'myteam'
-  project: 'myApp'
-}
+param projectName = 'ai-claims-automation'
