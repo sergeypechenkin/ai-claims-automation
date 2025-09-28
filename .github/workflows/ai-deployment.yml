@@ -53,7 +53,7 @@ jobs:
           az deployment group create \
             --name aiFoundryDeploy \
             --resource-group "$AI_RESOURCE_GROUP" \
-            --template-file ai/aiFoundry.bicep \
+            --template-file ai/aih.bicep \
             --parameters location="$AI_LOCATION" hubName="$HUB_NAME" projectName="$PROJECT_NAME" \
             --verbose
 
