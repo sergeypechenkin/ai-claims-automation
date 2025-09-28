@@ -16,7 +16,7 @@ env:
   AI_LOCATION: 'Sweden Central'
   HUB_NAME: 'ai-foundry-hub-ne'
   PROJECT_NAME: 'ai-foundry-proj-ne'
-  TAGS: 'environment=dev workload=aifoundry'
+  TAGS: 'environment=dev SecurityControl=Ignore'
 
 jobs:
   deploy-ai:
