@@ -19,11 +19,9 @@ param acrName string
 @description('Name of the App Insights component')
 param appInsightsName string
 
-@description('Optional Log Analytics workspace resource ID')
-param logAnalyticsWorkspaceId string = ''
-
 @description('Name of the Cognitive Services account')
 param cogName string
+
 @description('Cognitive Services kind (e.g., OpenAI, Speech, Translator)')
 @allowed([
   'OpenAI'
@@ -39,6 +37,8 @@ param cogSkuName string = 'S0'
 @description('Name of the Hub Project (to attach Cognitive Services to)')
 param projectName string = 'default-project'
 
+// === Dependencies ===
+
 // Storage
 resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   name: storageAccountName
@@ -48,7 +48,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   tags: tags
 }
 
-// Key Vault
+// Key Vault (RBAC mode)
 resource kv 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: keyVaultName
   location: location
@@ -59,7 +59,7 @@ resource kv 'Microsoft.KeyVault/vaults@2023-07-01' = {
       family: 'A'
     }
     enableRbacAuthorization: true
-    accessPolicies: []
+    accessPolicies: [] // required by API, but empty
   }
   tags: tags
 }
@@ -82,11 +82,14 @@ resource appi 'Microsoft.Insights/components@2020-02-02' = {
   tags: tags
 }
 
-// AI Hub (AML Workspace)
+// === AI Hub ===
 resource aihub 'Microsoft.MachineLearningServices/workspaces@2023-10-01' = {
   name: hubName
   location: location
   tags: tags
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     friendlyName: hubName
     keyVault: kv.id
@@ -96,7 +99,7 @@ resource aihub 'Microsoft.MachineLearningServices/workspaces@2023-10-01' = {
   }
 }
 
-// Cognitive Services account (e.g., OpenAI)
+// === Cognitive Services Account ===
 resource cog 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   name: cogName
   location: location
@@ -110,7 +113,7 @@ resource cog 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   tags: tags
 }
 
-// Hub Project
+// === Hub Project ===
 resource hubProject 'Microsoft.MachineLearningServices/workspaces/projects@2023-10-01' = {
   parent: aihub
   name: projectName
@@ -124,3 +127,53 @@ resource hubProject 'Microsoft.MachineLearningServices/workspaces/projects@2023-
     ]
   }
 }
+
+// === Role Assignments ===
+var roles = {
+  storageBlobContributor: subscriptionResourceId(
+    'Microsoft.Authorization/roleDefinitions',
+    'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+  )
+  acrPull: subscriptionResourceId(
+    'Microsoft.Authorization/roleDefinitions',
+    '7f951dda-4ed3-4680-a7ca-43fe172d538d'
+  )
+  kvSecretsUser: subscriptionResourceId(
+    'Microsoft.Authorization/roleDefinitions',
+    '4633458b-17de-408a-b874-0445c86b69e6'
+  )
+}
+
+// Storage Blob Contributor
+resource roleStorage 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: storage
+  name: guid(storage.id, roles.storageBlobContributor, aihub.name) // deterministic
+  properties: {
+    roleDefinitionId: roles.storageBlobContributor
+    principalId: aihub.identity.principalId
+  }
+  dependsOn: [aihub] // ensure workspace is created first
+}
+
+// ACR Pull
+resource roleAcr 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: acr
+  name: guid(acr.id, roles.acrPull, aihub.name)
+  properties: {
+    roleDefinitionId: roles.acrPull
+    principalId: aihub.identity.principalId
+  }
+  dependsOn: [aihub]
+}
+
+// KV Secrets User
+resource roleKv 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: kv
+  name: guid(kv.id, roles.kvSecretsUser, aihub.name)
+  properties: {
+    roleDefinitionId: roles.kvSecretsUser
+    principalId: aihub.identity.principalId
+  }
+  dependsOn: [aihub]
+}
+
