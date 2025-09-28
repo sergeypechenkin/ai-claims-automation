@@ -18,6 +18,8 @@ This guide provides comprehensive instructions for setting up CI/CD for your Azu
 3. **Git repository** (GitHub or Azure DevOps)
 4. **Python 3.12** runtime
 
+register Microsoft.AlertsManagement
+
 ## GitHub Actions Setup
 
 ### 1. Authentication Setup

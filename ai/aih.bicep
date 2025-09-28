@@ -58,6 +58,8 @@ resource kv 'Microsoft.KeyVault/vaults@2023-07-01' = {
       name: 'standard'
       family: 'A'
     }
+    enableRbacAuthorization: true
+    accessPolicies: []
   }
   tags: tags
 }
