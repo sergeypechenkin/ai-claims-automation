@@ -5,7 +5,7 @@ param location = 'swedencentral'
 
 param storageAccountName = 'staihdevswc001'
 param keyVaultName = 'kv-aih-dev-swc-001'
-param acrName = 'acr-aih-dev-swc'
+param acrName = 'acraihdevswc001'
 param appInsightsName = 'appi-aih-dev-swc-001'
 
 param cogName = 'aoai-dev-swc-001'
