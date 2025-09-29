@@ -10,6 +10,18 @@ param appnamePrefix string
 @description('The name of the storage account.')
 param storageAccountName string
 
+// --- Added Azure AI Document Intelligence parameters ---
+@description('Azure AI Document Intelligence endpoint (e.g. https://<region>.api.cognitive.microsoft.com/). Leave blank if not configuring.')
+param docIntelEndpoint string = ''
+
+@description('Azure AI Document Intelligence primary key (secure). Leave blank if not configuring.')
+@secure()
+param docIntelKey string = ''
+
+@description('Azure AI Document Intelligence region (optional if derivable from endpoint).')
+param docIntelRegion string = ''
+// --- end added params ---
+
 @description('The pricing tier for the hosting plan.')
 @allowed([
   'FC1'
@@ -144,6 +156,18 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         {
           name: 'EMAIL_MESSAGES_CONTAINER'
           value: 'emailmessages'
+        }
+        {
+          name: 'DOCUMENT_INTELLIGENCE_ENDPOINT'
+          value: docIntelEndpoint
+        }
+        {
+          name: 'DOCUMENT_INTELLIGENCE_KEY'
+          value: docIntelKey
+        }
+        {
+          name: 'DOCUMENT_INTELLIGENCE_REGION'
+          value: docIntelRegion
         }
       ]
     }

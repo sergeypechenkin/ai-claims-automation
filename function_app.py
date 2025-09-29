@@ -8,6 +8,8 @@ import os
 import uuid
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient  # generate_blob_sas, BlobSasPermissions removed
+from azure.core.credentials import AzureKeyCredential
+from azure.ai.formrecognizer import DocumentAnalysisClient
 
 
 # Initialize the Function App with proper configuration
@@ -15,14 +17,6 @@ app = func.FunctionApp()
 # Use managed identity credentials
 credential = DefaultAzureCredential()
 
-# --- Added: safe stubs / env checks ---
-def call_vision_ocr(blob_uri: str) -> str:
-    """
-    Placeholder OCR extraction.
-    Replace with actual Vision / Document Intelligence call.
-    """
-    logging.info(f'OCR stub invoked for {blob_uri}')
-    return f'EXTRACTED_TEXT_FROM::{blob_uri}'
 
 # Optional: log once whether storage account name env is present (non-fatal)
 STORAGE_ACCOUNT_NAME = os.getenv("STORAGE_ACCOUNT_NAME")
@@ -40,6 +34,49 @@ def _get_blob_service_client() -> BlobServiceClient:
         logging.info("Using managed identity for BlobServiceClient (no connection string)")
         return BlobServiceClient(account_url=f"https://{acct}.blob.core.windows.net", credential=credential)
     raise RuntimeError("Storage not configured: set AZURE_STORAGE_CONNECTION_STRING or STORAGE_ACCOUNT_NAME")
+
+# Document Intelligence configuration (do NOT log key)
+DOC_INTEL_ENDPOINT = os.getenv("DOCUMENT_INTELLIGENCE_ENDPOINTAI_DOC_INTEL_ENDPOINT", "").strip()
+DOC_INTEL_KEY = os.getenv("DOCUMENT_INTELLIGENCE_KEY", "").strip()
+DOC_INTEL_REGION = os.getenv("DOCUMENT_INTELLIGENCE_REGION", "").strip()
+
+def _get_doc_intel_client() -> DocumentAnalysisClient | None:
+    if DOC_INTEL_ENDPOINT and DOC_INTEL_KEY:
+        try:
+            return DocumentAnalysisClient(
+                endpoint=DOC_INTEL_ENDPOINT,
+                credential=AzureKeyCredential(DOC_INTEL_KEY)
+            )
+        except Exception as ci:
+            logging.error(f'Document Intelligence client init failed: {ci}', exc_info=True)
+    return None
+
+_doc_intel_client = _get_doc_intel_client()
+
+def analyze_with_document_intelligence(blob_client) -> str:
+    """
+    Uses prebuilt-read model to extract text from a blob (stream download).
+    Returns extracted text or empty string on failure.
+    """
+    if not _doc_intel_client:
+        return ""
+    try:
+        stream = blob_client.download_blob().readall()
+        poller = _doc_intel_client.begin_analyze_document(
+            model_id="prebuilt-read",
+            document=stream
+        )
+        result = poller.result()
+        lines = []
+        for page in result.pages:
+            for line in page.lines:
+                lines.append(line.content)
+        text = "\n".join(lines)
+        logging.debug(f'Document Intelligence extracted {len(text)} chars')
+        return text
+    except Exception as ex:
+        logging.warning(f'Document Intelligence analysis failed: {ex}')
+        return ""
 
 @app.route(route="health", methods=["GET"], auth_level=func.AuthLevel.ANONYMOUS)
 def health_check(req: func.HttpRequest) -> func.HttpResponse:
@@ -94,22 +131,16 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
         for att in attachment_uris:
             blob_name = att.lstrip('/')  # normalize if path starts with /
             filetype = blob_name.rsplit('.', 1)[-1].lower()
-            logging.info(f'Processing attachment {blob_name} ({filetype})')
-            # Existence check (best-effort)
-            try:
-                blob_client = blob_service_client.get_blob_client(container=attachments_container, blob=blob_name)
-                # Optionally: blob_client.get_blob_properties()
-            except Exception as bex:
-                logging.warning(f'Blob client create failed for {blob_name}: {bex}')
-                continue
+            logging.info(f'Processing attachment {blob_name}: {filetype}')
+            blob_client = blob_service_client.get_blob_client(container=attachments_container, blob=blob_name)
 
-            if filetype in ['tiff', 'tif', 'png', 'jpg', 'jpeg']:
-                extracted_text = call_vision_ocr(blob_name)
-                logging.debug(f'OCR extracted length={len(extracted_text)}')
-            elif filetype in ['pdf', 'doc', 'docx', 'xlx', 'xlsx', 'ppt', 'pptx']:
-                pass  # placeholder for future doc processing
-            else:
-                logging.debug(f'No special handler for type {filetype}')
+            extracted_text = ""
+            if filetype in ['tiff', 'tif', 'png', 'jpg', 'jpeg', 'pdf', 'doc', 'docx']:
+                extracted_text = analyze_with_document_intelligence(blob_client)
+                if extracted_text:
+                    logging.info(f'Extracted text length (Document Intelligence): {len(extracted_text)}')
+                else:
+                    logging.info('No text extracted (empty or feature not configured)')
 
             processed.append({
                 "name": blob_name,
@@ -137,80 +168,13 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
         logging.error(f'Unhandled error: {ex}', exc_info=True)
         return func.HttpResponse(json.dumps({"error": "Internal server error", "details": str(ex)}),
                                  status_code=500, mimetype="application/json")
+    
 
-def process_email_metadata(sender: str, subject: str, email_blob_uri: str, attachment_uris: List[str], event_timestamp: str) -> Dict[str, Any]:
+    # --- Added: safe stubs / env checks ---
+def call_vision_ocr(blob_uri: str) -> str:
     """
-        processed_timestamp = datetime.now(datetime.timezone.utc).isoformat()
-
-    Args:
-        sender (str): The email sender's address.
-        subject (str): The subject of the email.
-        email_blob_uri (str): URI to the email blob.
-        attachment_uris (List[str]): List of URIs for attachments.
-        event_timestamp (str): Timestamp of the event.
-
-    Returns:
-        return {"timestamp": processed_timestamp, "analysis": analysis, "details": details}
+    Placeholder OCR extraction.
+    Replace with actual Vision / Document Intelligence call.
     """
-    try:
-        ts = datetime.now(timezone.utc).isoformat()
-        analysis = f"Email from {sender} '{subject}' stored. {len(attachment_uris)} attachment blobs."
-        details = {
-            "sender_domain": sender.split('@')[-1] if '@' in sender else "unknown",
-            "email_blob_uri": email_blob_uri,
-            "attachment_uri_count": len(attachment_uris),
-            "has_attachments": len(attachment_uris) > 0,
-            "event_timestamp": event_timestamp,
-            "processed_by": "ai-claims-automation"
-        }
-        return {"timestamp": ts, "analysis": analysis, "details": details}
-    except Exception as e:
-        logging.error(f'processing failure: {e}', exc_info=True)
-        return {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "analysis": f"failure: {str(e)}",
-            "details": {}
-        }
-        
-
-def process_email_data(sender: str, subject: str, body_text: str, attachment_uris: List[str], event_timestamp: str) -> Dict[str, Any]:
-    """
-    Process the email data and return analysis results
-    """
-    try:
-        ts = datetime.utcnow().isoformat()
-        analysis_result = {
-            "sender_domain": sender.split('@')[-1] if '@' in sender else "unknown",
-            "subject_length": len(subject),
-            "body_length": len(body_text),
-            "attachment_uri_count": len(attachment_uris),
-            "has_attachments": len(attachment_uris) > 0,
-            "event_timestamp": event_timestamp,
-            "processed_by": "ai-claims-automation"
-        }
-        analysis = f"Email from {sender} with subject '{subject}' and {len(attachment_uris)} attachment URIs processed."
-        return {"timestamp": ts, "analysis": analysis, "details": analysis_result}
-    except Exception as ex:
-        logging.error(f'Analysis failure: {ex}', exc_info=True)
-        return {"timestamp": datetime.utcnow().isoformat(), "analysis": "Analysis error", "details": {}}
-        attachment_names = [att.get('name', '') for att in attachments if isinstance(att, dict)]
-        total_attachment_size = sum(att.get('size', 0) for att in attachments if isinstance(att, dict))
-        
-        analysis_result = {
-            "sender_domain": sender.split('@')[-1] if '@' in sender else "unknown",
-            "body_text": body_text,
-            "attachment_count": len(attachments),
-            "attachment_names": attachment_names,
-            "total_attachment_size": total_attachment_size,
-            "processed_by": "ai-claims-automation"
-        }
-        
-        analysis = f"Email from {sender} with subject '{subject}', {len(body_text)} characters body text, and {len(attachments)} attachments analyzed."
-        
-        logging.info(f'Enhanced email analysis completed: {analysis_result}')
-        
-        return {
-            "timestamp": timestamp,
-            "analysis": analysis,
-            "details": analysis_result
-        }
+    logging.info(f'OCR stub invoked for {blob_uri}')
+    return f'EXTRACTED_TEXT_FROM::{blob_uri}'
