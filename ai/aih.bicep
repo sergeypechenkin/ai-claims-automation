@@ -152,7 +152,6 @@ resource roleStorage 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
     roleDefinitionId: roles.storageBlobContributor
     principalId: aihub.identity.principalId
   }
-  dependsOn: [aihub] // ensure workspace is created first
 }
 
 // ACR Pull
@@ -163,7 +162,6 @@ resource roleAcr 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
     roleDefinitionId: roles.acrPull
     principalId: aihub.identity.principalId
   }
-  dependsOn: [aihub]
 }
 
 // KV Secrets User
@@ -174,6 +172,5 @@ resource roleKv 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
     roleDefinitionId: roles.kvSecretsUser
     principalId: aihub.identity.principalId
   }
-  dependsOn: [aihub]
 }
 
