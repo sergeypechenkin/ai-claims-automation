@@ -144,33 +144,33 @@ var roles = {
   )
 }
 
-// // Storage Blob Contributor
-// resource roleStorage 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-//   scope: storage
-//   name: guid(storage.id, roles.storageBlobContributor, aihub.name) // deterministic
-//   properties: {
-//     roleDefinitionId: roles.storageBlobContributor
-//     principalId: aihub.identity.principalId
-//   }
-// }
+// Storage Blob Contributor
+resource roleStorage 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: storage
+  name: guid(storage.id, roles.storageBlobContributor, aihub.name) // deterministic
+  properties: {
+    roleDefinitionId: roles.storageBlobContributor
+    principalId: aihub.identity.principalId
+  }
+}
 
-// // ACR Pull
-// resource roleAcr 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-//   scope: acr
-//   name: guid(acr.id, roles.acrPull, aihub.name)
-//   properties: {
-//     roleDefinitionId: roles.acrPull
-//     principalId: aihub.identity.principalId
-//   }
-// }
+// ACR Pull
+resource roleAcr 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: acr
+  name: guid(acr.id, roles.acrPull, aihub.name)
+  properties: {
+    roleDefinitionId: roles.acrPull
+    principalId: aihub.identity.principalId
+  }
+}
 
-// // KV Secrets User
-// resource roleKv 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-//   scope: kv
-//   name: guid(kv.id, roles.kvSecretsUser, aihub.name)
-//   properties: {
-//     roleDefinitionId: roles.kvSecretsUser
-//     principalId: aihub.identity.principalId
-//   }
-// }
+// KV Secrets User
+resource roleKv 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: kv
+  name: guid(kv.id, roles.kvSecretsUser, aihub.name)
+  properties: {
+    roleDefinitionId: roles.kvSecretsUser
+    principalId: aihub.identity.principalId
+  }
+}
 
