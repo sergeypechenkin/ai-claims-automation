@@ -3,4 +3,3 @@ azure-ai-documentintelligence
 pyodbc
 azure-storage-blob
 azure-identity
-

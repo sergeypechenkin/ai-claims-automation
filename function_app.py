@@ -8,8 +8,10 @@ import os
 import uuid
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient  # generate_blob_sas, BlobSasPermissions removed
+from azure.ai.documentintelligence import DocumentIntelligenceClient
 from azure.core.credentials import AzureKeyCredential
-from azure.ai.formrecognizer import DocumentAnalysisClient
+from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
+
 
 
 # Initialize the Function App with proper configuration
@@ -39,44 +41,6 @@ def _get_blob_service_client() -> BlobServiceClient:
 DOC_INTEL_ENDPOINT = os.getenv("DOCUMENT_INTELLIGENCE_ENDPOINTAI_DOC_INTEL_ENDPOINT", "").strip()
 DOC_INTEL_KEY = os.getenv("DOCUMENT_INTELLIGENCE_KEY", "").strip()
 DOC_INTEL_REGION = os.getenv("DOCUMENT_INTELLIGENCE_REGION", "").strip()
-
-def _get_doc_intel_client() -> DocumentAnalysisClient | None:
-    if DOC_INTEL_ENDPOINT and DOC_INTEL_KEY:
-        try:
-            return DocumentAnalysisClient(
-                endpoint=DOC_INTEL_ENDPOINT,
-                credential=AzureKeyCredential(DOC_INTEL_KEY)
-            )
-        except Exception as ci:
-            logging.error(f'Document Intelligence client init failed: {ci}', exc_info=True)
-    return None
-
-_doc_intel_client = _get_doc_intel_client()
-
-def analyze_with_document_intelligence(blob_client) -> str:
-    """
-    Uses prebuilt-read model to extract text from a blob (stream download).
-    Returns extracted text or empty string on failure.
-    """
-    if not _doc_intel_client:
-        return ""
-    try:
-        stream = blob_client.download_blob().readall()
-        poller = _doc_intel_client.begin_analyze_document(
-            model_id="prebuilt-read",
-            document=stream
-        )
-        result = poller.result()
-        lines = []
-        for page in result.pages:
-            for line in page.lines:
-                lines.append(line.content)
-        text = "\n".join(lines)
-        logging.debug(f'Document Intelligence extracted {len(text)} chars')
-        return text
-    except Exception as ex:
-        logging.warning(f'Document Intelligence analysis failed: {ex}')
-        return ""
 
 @app.route(route="health", methods=["GET"], auth_level=func.AuthLevel.ANONYMOUS)
 def health_check(req: func.HttpRequest) -> func.HttpResponse:
@@ -178,3 +142,10 @@ def call_vision_ocr(blob_uri: str) -> str:
     """
     logging.info(f'OCR stub invoked for {blob_uri}')
     return f'EXTRACTED_TEXT_FROM::{blob_uri}'
+
+def analyze_with_document_intelligence(blob_client) -> str:
+    """
+    Placeholder for analyzing document using Azure Document Intelligence.
+    """
+    logging.info(f'Document Intelligence stub invoked for {blob_client}')
+    return f'EXTRACTED_TEXT_FROM::{blob_client}'
