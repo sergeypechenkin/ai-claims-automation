@@ -56,7 +56,7 @@ jobs:
             --template-file ai/aih.bicep \
             --parameters ai/aih.bicepparam \
             --parameters location="$AI_LOCATION" hubName="$HUB_NAME" projectName="$PROJECT_NAME" \
-            --verbose
+            --verbose --debug
 
           outputs=$(az deployment group show \
             --resource-group "$AI_RESOURCE_GROUP" \
