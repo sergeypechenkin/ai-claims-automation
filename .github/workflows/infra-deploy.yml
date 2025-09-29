@@ -9,6 +9,7 @@ on:
     branches: [ main ]
     paths:
       - 'infra/**'
+  workflow_dispatch:
 
 env:
   AZURE_APP_NAME: 'ai-claims-automation'
