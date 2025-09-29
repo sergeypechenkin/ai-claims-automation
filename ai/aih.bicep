@@ -119,12 +119,6 @@ resource hubProject 'Microsoft.MachineLearningServices/workspaces/projects@2023-
   name: projectName
   properties: {
     description: 'AI Hub project connected to Cognitive Services'
-    connectedResources: [
-      {
-        resourceId: cog.id
-        type: 'CognitiveServices'
-      }
-    ]
   }
 }
 
