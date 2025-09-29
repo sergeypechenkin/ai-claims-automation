@@ -30,7 +30,7 @@ jobs:
         run: |
           if [ -z "${{ secrets.AZURE_CREDENTIALS }}" ]; then
             echo "Missing AZURE_CREDENTIALS"
-            exit 1
+            exit 12
           fi
         env:
           AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
