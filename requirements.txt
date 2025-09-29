@@ -1,4 +1,6 @@
 azure-functions>=1.18.0
 azure-ai-documentintelligence
 pyodbc
+azure-storage-blob
+azure-identity
 

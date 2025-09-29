@@ -120,13 +120,30 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
       minTlsVersion: '1.2'
       scmMinTlsVersion: '1.2'
       appSettings: [
+        // REPLACED: use full connection string (runtime needs this)
         {
-          name: 'AzureWebJobsStorage__accountName'
-          value: storageAccount.name
+          name: 'AzureWebJobsStorage'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
         }
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
           value: applicationInsights.properties.ConnectionString
+        }
+        {
+          name: 'STORAGE_ACCOUNT_NAME'
+          value: storageAccount.name
+        }
+        {
+          name: 'AZURE_STORAGE_CONNECTION_STRING'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
+        }
+        {
+          name: 'EMAIL_ATTACHMENTS_CONTAINER'
+          value: 'emailattachments'
+        }
+        {
+          name: 'EMAIL_MESSAGES_CONTAINER'
+          value: 'emailmessages'
         }
       ]
     }
