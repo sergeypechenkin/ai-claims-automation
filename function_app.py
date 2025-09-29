@@ -3,6 +3,10 @@ import json
 import logging
 from datetime import datetime, timezone
 from typing import Dict, Any, List
+import pyodbc
+import os
+import uuid
+
 
 # Initialize the Function App with proper configuration
 app = func.FunctionApp()
@@ -28,35 +32,45 @@ def health_check(req: func.HttpRequest) -> func.HttpResponse:
 @app.route(route="process_email", methods=["POST"])
 def process_email(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('process_email invoked')
+
     try:
         data = req.get_json()
         sender = (data.get('sender') or '').strip()
         subject = (data.get('subject') or '').strip()
+        body_text = (data.get('bodyText') or '').strip()
         email_blob_uri = data.get('emailBlobUri')
         attachment_uris: List[str] = data.get('attachmentUris', [])
         event_ts = data.get('timestamp') or datetime.now(timezone.utc).isoformat()
 
-        if not sender or not subject or not email_blob_uri:
+        if not sender or not email_blob_uri:
             return func.HttpResponse(
                 json.dumps({"error": "Required fields: sender, subject, emailBlobUri"}),
                 status_code=400,
                 mimetype="application/json"
             )
+        
 
-        result = process_email_metadata(sender, subject, email_blob_uri, attachment_uris, event_ts)
+        for att in attachment_uris:
+            filetype = att.rsplit('.', 1)[-1].lower()
+            logging.info(f'Processing attachment {att}: {filetype}')
+            if filetype in ['tiff', 'tif', 'png', 'jpg', 'jpeg']:
+                logging.info(f'Attachment {att} is an image type: {filetype}')
+            elif filetype in ['pdf', 'doc', 'docx', 'xlx', 'xlsx', 'ppt', 'pptx']:
+                logging.info(f'Attachment {att} is a document type: {filetype}')
+            else:
+                logging.warning(f'Attachment {att} has an unrecognized file type: {filetype}')
+
 
         resp = {
             "status": "success",
-            "message": "Email metadata processed",
             "data": {
                 "sender": sender,
                 "subject": subject,
+                "bodyText": body_text,
                 "emailBlobUri": email_blob_uri,
                 "attachmentUris": attachment_uris,
                 "attachmentCount": len(attachment_uris),
                 "eventTimestamp": event_ts,
-                "processed_at": result.get("timestamp"),
-                "analysis": result.get("analysis")
             }
         }
         return func.HttpResponse(json.dumps(resp, indent=2), status_code=200, mimetype="application/json")
@@ -143,4 +157,4 @@ def process_email_data(sender: str, subject: str, body_text: str, attachment_uri
             "analysis": analysis,
             "details": analysis_result
         }
-        
+

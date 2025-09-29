@@ -1,1 +1,4 @@
 azure-functions>=1.18.0
+azure-ai-documentintelligence //Azure AI Document Intelligence client library
+pyodbc
+
