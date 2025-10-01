@@ -569,15 +569,15 @@ Post_adaptive_card_to_teams: {
     {
       "type": "FactSet",
       "facts": [
-        { "title": "Sender:", "value": "@{outputs("Extract_email_data")?["sender"]}" },
-        { "title": "Subject:", "value": "@{outputs("Extract_email_data")?["subject"]}" },
-        { "title": "Attachments:", "value": "@{length(variables("attachmentUris"))}" },
+        { "title": "Sender:", "value": "@{outputs('Extract_email_data')?['sender']}" },
+        { "title": "Subject:", "value": "@{outputs('Extract_email_data')?['subject']}" },
+        { "title": "Attachments:", "value": "@{length(variables('attachmentUris'))}" },
         { "title": "Processed At (UTC):", "value": "@{utcNow()}" }
       ]
     },
     {
       "type": "TextBlock",
-      "text": "Preview: @{if(greaterOrEquals(length(coalesce(body("Call_function_process_email")?["data"]?["processedAttachments"]?[0]?["extractedTextPreview"], "(no text)")), 180), substring(coalesce(body("Call_function_process_email")?["data"]?["processedAttachments"]?[0]?["extractedTextPreview"], "(no text)"), 0, 180), coalesce(body("Call_function_process_email")?["data"]?["processedAttachments"]?[0]?["extractedTextPreview"], "(no text)")))}",
+      "text": "Preview: @{if(greaterOrEquals(length(coalesce(body('Call_function_process_email')?['data']?['processedAttachments']?[0]?['extractedTextPreview'], '(no text)')), 180), substring(coalesce(body('Call_function_process_email')?['data']?['processedAttachments']?[0]?['extractedTextPreview'], '(no text)'), 0, 180), coalesce(body('Call_function_process_email')?['data']?['processedAttachments']?[0]?['extractedTextPreview'], '(no text)')))}",
       "wrap": true,
       "spacing": "Medium"
     }
