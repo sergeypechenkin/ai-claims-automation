@@ -538,7 +538,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
               }
             }
             method: 'post'
-            path: '/beta/teams/@{encodeURIComponent(encodeURIComponent(parameters(\'teamId\')) )}/channels/@{encodeURIComponent(encodeURIComponent(parameters(\'channelId\')) )}/messages'
+            path: '/beta/teams/@{encodeURIComponent(encodeURIComponent(parameters(\'${teamId}\')) )}/channels/@{encodeURIComponent(encodeURIComponent(parameters(\'${channelId}\')) )}/messages'
             body: {
               body: {
                 contentType: 'html'
