@@ -1,0 +1,13 @@
+Analyze the email below and provide the following in a structured format:
+Summary: One to two sentences summarizing the email.
+Type: Categorize as Claim, Quote, or Other.
+Claim: Email contains a reference number starting with one of these: TPEH, TAAI, TEGH, TCCHH, THEC, TEGC, TAQC.
+Quote: Email is asking about potential insurance costs.
+Other: Anything else.
+Reference Number: Extract the number if present (or write None).
+Provide the answer strictly in this JSON format:
+{
+  "Summary": "",
+  "Type": "",
+  "ReferenceNumber": ""
+}

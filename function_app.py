@@ -6,11 +6,19 @@ from typing import Dict, Any, List
 import pyodbc
 import os
 import uuid
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions  # added imports
 from azure.ai.documentintelligence import DocumentIntelligenceClient
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
+from openai import AzureOpenAI 
+
+
+gpt5_endpoint = os.getenv("GPT5_ENDPOINT", "").strip()
+gpt5_model_name = os.getenv("GPT5_MODEL", "").strip()
+gpt5_deployment = os.getenv("GPT5_DEPLOYMENT", "").strip()
+gpt5_token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
+gpt5_api_version = "2024-12-01-preview"
 
 
 
@@ -135,6 +143,7 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
         sender = (data.get('sender') or '').strip()
         subject = (data.get('subject') or '').strip()
         body_text = (data.get('bodyText') or '').strip()
+        text = "Subject: " + subject + "\n\n" + body_text
         email_blob_uri = data.get('emailBlobUri')
         attachment_uris: List[str] = data.get('attachmentUris', [])
         event_ts = data.get('timestamp') or datetime.now(timezone.utc).isoformat()
@@ -154,12 +163,12 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
             blob_client = blob_service_client.get_blob_client(container=attachments_container, blob=blob_name)
 
             extracted_text = ""
-            if filetype in ['tiff', 'tif', 'png', 'jpg', 'jpeg', 'pdf', 'doc', 'docx']:
-                extracted_text = analyze_with_document_intelligence(blob_client)
-                if extracted_text:
-                    logging.info(f'Extracted text length (Document Intelligence): {len(extracted_text)}')
-                else:
-                    logging.info('No text extracted (empty or feature not configured)')
+            # if filetype in ['tiff', 'tif', 'png', 'jpg', 'jpeg', 'pdf', 'doc', 'docx']:
+            #     extracted_text = analyze_with_document_intelligence(blob_client)
+            #     if extracted_text:
+            #         logging.info(f'Extracted text length (Document Intelligence): {len(extracted_text)}')
+            #     else:
+            #         logging.info('No text extracted (empty or feature not configured)')
 
             sas_url = generate_blob_sas_url(blob_service_client, attachments_container, blob_name)
 
@@ -174,13 +183,7 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
             "status": "success",
             "data": {
                 "sender": sender,
-                "subject": subject,
-                "bodyText": body_text,
-                "emailBlobUri": email_blob_uri,
-                "attachmentUris": attachment_uris,
-                "processedAttachments": processed,
-                "attachmentCount": len(attachment_uris),
-                "eventTimestamp": event_ts
+                "Summary": analyze_email_text(text),
             }
         }
         return func.HttpResponse(json.dumps(resp, indent=2), status_code=200, mimetype="application/json")
@@ -202,10 +205,45 @@ def call_vision_ocr(blob_uri: str) -> str:
     logging.info(f'OCR stub invoked for {blob_uri}')
     return f'EXTRACTED_TEXT_FROM::{blob_uri}'
 
+def analyze_email_text(text: str) -> str:
 
-def analyze_with_document_intelligence(blob_client) -> str:
-    """
-    Placeholder for analyzing document using Azure Document Intelligence.
-    """
-    logging.info(f'Document Intelligence stub invoked for {blob_client}')
-    return f'EXTRACTED_TEXT_FROM::{blob_client}'
+    gpt5_client = AzureOpenAI(
+        api_version=gpt5_api_version,
+        azure_endpoint=gpt5_endpoint,
+        azure_ad_token_provider=gpt5_token_provider,
+    )
+
+    with open(f'./ai/gpt5_prompt.txt', 'r') as f:
+        prompt = f.read()
+        response = gpt5_client.chat.completions.create(
+    messages=[
+        {
+            "role": "system",
+            "content": prompt,
+        },
+        {
+            "role": "user",
+            "content": text,
+        }
+    ],
+    max_tokens=30000,
+    temperature=1.0,
+    top_p=1.0,
+    model=gpt5_deployment
+)
+    logging.info(f'Customer wants {response.choices[0].message.content}')
+    return str(response.choices[0].message.content)
+
+
+
+
+# def analyze_with_document_intelligence(blob_client) -> str:
+
+#     document_intelligence_client = DocumentIntelligenceClient(endpoint=DOC_INTEL_ENDPOINT, credential=AzureKeyCredential(DOC_INTEL_KEY))
+#     if not DOC_INTEL_ENDPOINT or not DOC_INTEL_KEY:
+#         logging.warning('Document Intelligence not configured (missing endpoint/key); skipping analysis.')
+#         return ''
+
+#     poller = document_intelligence_client.begin_analyze_document("prebuilt-invoice", AnalyzeDocumentRequest(url_source=blob_client.url))
+#     logging.info(f'Document Intelligence invoked for {blob_client.url}')
+#     return f'EXTRACTED_TEXT_FROM::{blob_client.url}'
