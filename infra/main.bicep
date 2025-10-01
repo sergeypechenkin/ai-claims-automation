@@ -739,7 +739,7 @@ output sqlServerName string = sqlServer.name
 var storageBlobDataContributorRoleId = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
 
 // ADD: Storage Blob Delegator role definition ID (verify this GUID; replace if your tenant differs)
-var storageBlobDelegatorRoleId = '3f88fce4-5892-4214-ae73-ba529b15b31d'
+var storageBlobDelegatorRoleId = 'db58b8e5-c6ad-4a2a-8342-4190687cbf4a'
 
 
 var teamsConnectionName = '${logicAppName}-teams-conn'
