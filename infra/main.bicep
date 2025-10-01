@@ -576,7 +576,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
                       }
                       {
                         type: 'TextBlock'
-                        text: 'Preview: @{substring(coalesce(body(\'Call_function_process_email\')?[\'data\']?[\'processedAttachments\']?[0]?[\'extractedTextPreview\'], \'(no text)\'), 0, 180)}'
+                        text: 'Preview: @{if(greaterOrEquals(length(coalesce(body(\'Call_function_process_email\')?[\'data\']?[\'processedAttachments\']?[0]?[\'extractedTextPreview\'], \'(no text)\')), 180), substring(coalesce(body(\'Call_function_process_email\')?[\'data\']?[\'processedAttachments\']?[0]?[\'extractedTextPreview\'], \'(no text)\'), 0, 180), coalesce(body(\'Call_function_process_email\')?[\'data\']?[\'processedAttachments\']?[0]?[\'extractedTextPreview\'], \'(no text)\'))}'
                         wrap: true
                         spacing: 'Medium'
                       }
