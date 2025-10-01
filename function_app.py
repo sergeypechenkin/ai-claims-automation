@@ -206,31 +206,37 @@ def call_vision_ocr(blob_uri: str) -> str:
     return f'EXTRACTED_TEXT_FROM::{blob_uri}'
 
 def analyze_email_text(text: str) -> str:
+    try:
+        gpt5_client = AzureOpenAI(
+            api_version=gpt5_api_version,
+            azure_endpoint=gpt5_endpoint,
+            azure_ad_token_provider=gpt5_token_provider,
+        )
+        with open('./ai/gpt5_prompt.txt', 'r') as f:
+            prompt = f.read()
+    except FileNotFoundError as exc:
+        logging.error("Prompt file missing: %s", exc)
+        return f"Failed to load GPT-5 prompt file: {exc}"
+    except Exception as exc:
+        logging.error("Unexpected error loading prompt: %s", exc)
+        return f"Failed to prepare GPT-5 request: {exc}"
 
-    gpt5_client = AzureOpenAI(
-        api_version=gpt5_api_version,
-        azure_endpoint=gpt5_endpoint,
-        azure_ad_token_provider=gpt5_token_provider,
+    response = gpt5_client.chat.completions.create(
+        messages=[
+            {
+                "role": "system",
+                "content": prompt,
+            },
+            {
+                "role": "user",
+                "content": text,
+            }
+        ],
+        max_tokens=30000,
+        temperature=1.0,
+        top_p=1.0,
+        model=gpt5_deployment
     )
-
-    with open(f'./ai/gpt5_prompt.txt', 'r') as f:
-        prompt = f.read()
-        response = gpt5_client.chat.completions.create(
-    messages=[
-        {
-            "role": "system",
-            "content": prompt,
-        },
-        {
-            "role": "user",
-            "content": text,
-        }
-    ],
-    max_tokens=30000,
-    temperature=1.0,
-    top_p=1.0,
-    model=gpt5_deployment
-)
     logging.info(f'Customer wants {response.choices[0].message.content}')
     return str(response.choices[0].message.content)
 
