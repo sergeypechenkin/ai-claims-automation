@@ -549,7 +549,7 @@ Post_adaptive_card_to_teams: {
     body: {
       body: {
         contentType: 'html'
-        content: '<p>Claims email processed successfully.</p>'
+        content: '<p>Claims email processed successfully.</p><attachment id="1"></attachment>'
       }
       attachments: [
         {
