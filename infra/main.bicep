@@ -283,7 +283,14 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
           defaultValue: {}
           type: 'Object'
         }
-          functionAppKey: {
+        functionAppKey: {
+          type: 'string'
+        }
+        // ADDED: expose team/channel IDs as workflow parameters (referenced by parameters('teamId'))
+        teamId: {
+          type: 'string'
+        }
+        channelId: {
           type: 'string'
         }
       }
@@ -617,6 +624,13 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
       functionAppKey: {
         // Use default host function key (more stable) with correct API version
         value: listKeys(resourceId('Microsoft.Web/sites/host', functionAppName, 'default'), '2022-09-01').functionKeys.default
+      }
+      // ADDED: bind workflow parameters to template parameters
+      teamId: {
+        value: teamId
+      }
+      channelId: {
+        value: channelId
       }
     }
   }
