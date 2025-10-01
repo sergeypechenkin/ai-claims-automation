@@ -31,6 +31,13 @@ param docIntelRegion string = ''
 ])
 param hostingPlanSku string
 
+@description('Microsoft Teams Team ID where the adaptive card will be posted.')
+param teamId string
+
+@description('Microsoft Teams Channel ID (within the Team) where the adaptive card will be posted.')
+param channelId string
+
+
 // Create storage account
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   name: storageAccountName
@@ -183,6 +190,17 @@ resource functionAppBlobDataContributor 'Microsoft.Authorization/roleAssignments
   scope: storageAccount
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRoleId) // Storage Blob Data Contributor
+    principalId: functionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// ADD: Grant Function App MSI Storage Blob Delegator (required for user delegation SAS)
+resource functionAppBlobDelegator 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storageAccount.id, functionApp.id, storageBlobDelegatorRoleId)
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDelegatorRoleId)
     principalId: functionApp.identity.principalId
     principalType: 'ServicePrincipal'
   }
@@ -506,6 +524,70 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             errorTime: '@utcNow()'
           }
         }
+        Post_adaptive_card_to_teams: {
+          runAfter: {
+            Handle_success_response: [
+              'Succeeded'
+            ]
+          }
+          type: 'ApiConnection'
+          inputs: {
+            host: {
+              connection: {
+                name: '@parameters(\'$connections\')[\'teams\'][\'connectionId\']'
+              }
+            }
+            method: 'post'
+            // Teams Graph-style path (connector internal handling). Team and Channel IDs provided via parameters.
+            path: '/beta/teams/@{encodeURIComponent(encodeURIComponent(parameters(\'teamId\')) )}/channels/@{encodeURIComponent(encodeURIComponent(parameters(\'channelId\')) )}/messages'
+            body: {
+              body: {
+                contentType: 'html'
+                content: '<p>Claims email processed successfully.</p>'
+              }
+              attachments: [
+                {
+                  contentType: 'application/vnd.microsoft.card.adaptive'
+                  content: {
+                    $schema: 'http://adaptivecards.io/schemas/adaptive-card.json'
+                    type: 'AdaptiveCard'
+                    version: '1.4'
+                    body: [
+                      {
+                        type: 'TextBlock'
+                        text: 'Claims Email Processed'
+                        weight: 'Bolder'
+                        size: 'Medium'
+                      },
+                      {
+                        type: 'FactSet'
+                        facts: [
+                          { title: 'Sender:', value: '@{outputs(\'Extract_email_data\')?[\'sender\']}' }
+                          { title: 'Subject:', value: '@{outputs(\'Extract_email_data\')?[\'subject\']}' }
+                          { title: 'Attachments:', value: '@{length(variables(\'attachmentUris\'))}' }
+                          { title: 'Processed At (UTC):', value: '@{utcNow()}' }
+                        ]
+                      },
+                      {
+                        type: 'TextBlock'
+                        text: 'Preview: @{substring(coalesce(body(\'Call_function_process_email\')?[\'data\']?[\'processedAttachments\']?[0]?[\'extractedTextPreview\'], \'(no text)\'), 0, 180)}'
+                        wrap: true
+                        spacing: 'Medium'
+                      }
+                    ]
+                    actions: [
+                      {
+                        type: 'Action.OpenUrl'
+                        title: 'Open Function App'
+                        url: 'https://${functionApp.properties.defaultHostName}'
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
       }
     }
     parameters: {
@@ -525,6 +607,11 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             connectionId: conversionserviceConnection.id
             connectionName: conversionServiceConnectionName
             id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'conversionservice')
+          }
+          teams: {
+            connectionId: teamsConnection.id
+            connectionName: teamsConnectionName
+            id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'teams')
           }
         }
       }
@@ -651,3 +738,24 @@ output sqlServerName string = sqlServer.name
 
 // Storage Blob Data Contributor role definition ID
 var storageBlobDataContributorRoleId = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+
+// ADD: Storage Blob Delegator role definition ID (verify this GUID; replace if your tenant differs)
+var storageBlobDelegatorRoleId = '3f88fce4-5892-4214-ae73-ba529b15b31d'
+
+
+var teamsConnectionName = '${logicAppName}-teams-conn'
+
+// Teams connector connection (authorization will be granted interactively by sergeype@microsoft.com post-deployment)
+resource teamsConnection 'Microsoft.Web/connections@2016-06-01' = {
+  name: teamsConnectionName
+  location: location
+  properties: {
+    displayName: 'Teams Connection (sergeype@microsoft.com)'
+    customParameterValues: {}
+    api: {
+      id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'teams')
+      displayName: 'Microsoft Teams'
+      description: 'Microsoft Teams is a chat-based workspace in Office 365.'
+    }
+  }
+}

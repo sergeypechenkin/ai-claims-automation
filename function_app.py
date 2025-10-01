@@ -7,7 +7,7 @@ import pyodbc
 import os
 import uuid
 from azure.identity import DefaultAzureCredential
-from azure.storage.blob import BlobServiceClient  # generate_blob_sas, BlobSasPermissions removed
+from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions  # added imports
 from azure.ai.documentintelligence import DocumentIntelligenceClient
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
@@ -37,10 +37,65 @@ def _get_blob_service_client() -> BlobServiceClient:
         return BlobServiceClient(account_url=f"https://{acct}.blob.core.windows.net", credential=credential)
     raise RuntimeError("Storage not configured: set AZURE_STORAGE_CONNECTION_STRING or STORAGE_ACCOUNT_NAME")
 
-# Document Intelligence configuration (do NOT log key)
-DOC_INTEL_ENDPOINT = os.getenv("DOCUMENT_INTELLIGENCE_ENDPOINTAI_DOC_INTEL_ENDPOINT", "").strip()
+# Document Intelligence configuration (fixed wrong env var name)
+DOC_INTEL_ENDPOINT = os.getenv("DOCUMENT_INTELLIGENCE_ENDPOINT", "").strip()
 DOC_INTEL_KEY = os.getenv("DOCUMENT_INTELLIGENCE_KEY", "").strip()
 DOC_INTEL_REGION = os.getenv("DOCUMENT_INTELLIGENCE_REGION", "").strip()
+
+# --- Added SAS generation helper ---
+def generate_blob_sas_url(blob_service_client: BlobServiceClient, container: str, blob_name: str, hours: int = 1):
+    """
+    Generate a read-only user delegation SAS URL for a blob using ONLY managed identity (AAD).
+    Ignores any shared key / connection string on the passed client to avoid AuthenticationFailed
+    ('Only authentication scheme Bearer is supported') when requesting user delegation key.
+    """
+    # account_name may be None depending on how the client was constructed; provide a safe fallback
+    account_name = getattr(blob_service_client, "account_name", None)
+    if not account_name:
+        account_name = os.getenv("STORAGE_ACCOUNT_NAME")
+    if not account_name:
+        logging.error("Storage account name not found for SAS generation; set STORAGE_ACCOUNT_NAME or use a BlobServiceClient with account_name.")
+        return ''
+
+    expiry = datetime.utcnow() + timedelta(hours=hours)
+    try:
+        # Always build an AAD-authenticated client (even if original was from connection string)
+        if os.getenv("AZURE_STORAGE_CONNECTION_STRING"):
+            logging.debug("SAS: Re-initializing BlobServiceClient with managed identity for user delegation key.")
+        aad_client = BlobServiceClient(
+            account_url=f"https://{account_name}.blob.core.windows.net",
+            credential=credential
+        )
+
+        delegation_key = aad_client.get_user_delegation_key(
+            key_start_time=datetime.utcnow() - timedelta(minutes=5),
+            key_expiry_time=expiry
+        )
+
+        sas_token = generate_blob_sas(
+            account_name=account_name,
+            container_name=container,
+            blob_name=blob_name,
+            user_delegation_key=delegation_key,
+            permission=BlobSasPermissions(read=True),
+            expiry=expiry
+        )
+        return f"https://{account_name}.blob.core.windows.net/{container}/{blob_name}?{sas_token}"
+    except Exception as ex:
+        msg = str(ex)
+        if "AuthorizationPermissionMismatch" in msg or "UserDelegation" in msg:
+            logging.error(
+                "User delegation SAS failed for %s/%s (likely missing 'Storage Blob Delegator' role). Details: %s",
+                container, blob_name, ex
+            )
+        elif "AuthenticationFailed" in msg:
+            logging.error(
+                "Authentication failed obtaining user delegation key for %s/%s. Ensure the managed identity is used "
+                "and has proper role assignments. Details: %s", container, blob_name, ex
+            )
+        else:
+            logging.warning("Failed to generate user delegation SAS for %s/%s: %s", container, blob_name, ex)
+        return ''
 
 @app.route(route="health", methods=["GET"], auth_level=func.AuthLevel.ANONYMOUS)
 def health_check(req: func.HttpRequest) -> func.HttpResponse:
@@ -106,9 +161,13 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
                 else:
                     logging.info('No text extracted (empty or feature not configured)')
 
+            sas_url = generate_blob_sas_url(blob_service_client, attachments_container, blob_name)
+
             processed.append({
                 "name": blob_name,
-                "type": filetype
+                "type": filetype,
+                "sasUrl": sas_url,
+                "extractedTextPreview": extracted_text[:200] if extracted_text else ""
             })
 
         resp = {
@@ -142,6 +201,7 @@ def call_vision_ocr(blob_uri: str) -> str:
     """
     logging.info(f'OCR stub invoked for {blob_uri}')
     return f'EXTRACTED_TEXT_FROM::{blob_uri}'
+
 
 def analyze_with_document_intelligence(blob_client) -> str:
     """
