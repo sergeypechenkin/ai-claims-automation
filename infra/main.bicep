@@ -235,7 +235,6 @@ resource logicAppBlobDataContributor 'Microsoft.Authorization/roleAssignments@20
   }
 }
 
-// Create Logic App for email monitoring
 
 @description('Shared mailbox address to monitor')
 param sharedMailboxAddress string

@@ -221,25 +221,66 @@ def analyze_email_text(text: str) -> str:
         logging.error("Unexpected error loading prompt: %s", exc)
         return f"Failed to prepare GPT-5 request: {exc}"
 
-    response = gpt5_client.chat.completions.create(
-        messages=[
-            {
-                "role": "system",
-                "content": prompt,
-            },
-            {
-                "role": "user",
-                "content": text,
-            }
-        ],
-        max_tokens=30000,
-        temperature=1.0,
-        top_p=1.0,
-        model=gpt5_deployment
-    )
+    try:
+        token_count = count_tokens(prompt+text)
+        logging.info(f'Prompt + text token count: {token_count}')
+        response = gpt5_client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": prompt,
+                },
+                {
+                    "role": "user",
+                    "content": text,
+                }
+            ],
+            max_tokens=16000,
+            temperature=1.0,
+            top_p=1.0,
+            model=gpt5_deployment
+        )
+    except Exception as exc:
+        logging.error("GPT-5 chat completion failed: %s", exc)
+        return f"GPT-5 completion failed: {exc}"
+
     logging.info(f'Customer wants {response.choices[0].message.content}')
     return str(response.choices[0].message.content)
 
+def count_tokens(text: str) -> int:
+    """
+    Count tokens for the given text.
+
+    Uses the tiktoken library when available (best accuracy). If tiktoken is not
+    installed or fails, falls back to a simple heuristic estimate (1 token ≈ 4 chars).
+    If a model name is configured (gpt5_model_name or gpt5_deployment) the function
+    will attempt to use tiktoken.encoding_for_model(model) to pick the proper encoding.
+    """
+    try:
+        import tiktoken  # optional dependency; import at runtime
+        model = None
+        try:
+            # prefer explicit model env vars if present
+            model = gpt5_model_name or gpt5_deployment
+        except NameError:
+            model = None
+
+        try:
+            if model:
+                enc = tiktoken.encoding_for_model(model)
+            else:
+                enc = tiktoken.get_encoding("cl100k_base")
+        except Exception:
+            # fallback encoding if model-specific lookup fails
+            enc = tiktoken.get_encoding("cl100k_base")
+
+        return len(enc.encode(text))
+    except Exception as exc:
+        logging.debug("tiktoken not available or failed, using heuristic token count: %s", exc)
+        # Heuristic: average ~4 characters per token for English text.
+        approx = max(1, int(len(text) / 4))
+        return approx
+    return len(text.split())
 
 
 

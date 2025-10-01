@@ -19,6 +19,7 @@ This guide provides comprehensive instructions for setting up CI/CD for your Azu
 4. **Python 3.12** runtime
 
 register Microsoft.AlertsManagement
+assign Azure Foundry resoure Cognitive Services OpenAI Contributor/User to Functions Managed Identity (if not created via YML)
 
 ## GitHub Actions Setup
 
