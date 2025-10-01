@@ -553,6 +553,7 @@ Post_adaptive_card_to_teams: {
       }
       attachments: [
         {
+          id: '1'
           contentType: 'application/vnd.microsoft.card.adaptive'
           content: '''
 {
