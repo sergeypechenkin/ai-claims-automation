@@ -1,14 +1,14 @@
 name: Deploy AI Foundry
 
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'ai/**'
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'ai/**'
+  # push:
+  #   branches: [ main ]
+  #   paths:
+  #     - 'ai/**'
+  # pull_request:
+  #   branches: [ main ]
+  #   paths:
+  #     - 'ai/**'
   workflow_dispatch:
 
 env:
