@@ -577,7 +577,7 @@ Post_adaptive_card_to_teams: {
     },
     {
       "type": "TextBlock",
-      "text": "Preview: @{if(greaterOrEquals(length(coalesce(body('Call_function_process_email')?['data']?['processedAttachments']?[0]?['extractedTextPreview'], '(no text)')), 180), substring(coalesce(body('Call_function_process_email')?['data']?['processedAttachments']?[0]?['extractedTextPreview'], '(no text)'), 0, 180), coalesce(body('Call_function_process_email')?['data']?['processedAttachments']?[0]?['extractedTextPreview'], '(no text)')))}",
+      "text": "Preview: @{substring(coalesce(body('Call_function_process_email')?['data']?['processedAttachments']?[0]?['extractedTextPreview'], '(no text)'), 0, min(180, length(coalesce(body('Call_function_process_email')?['data']?['processedAttachments']?[0]?['extractedTextPreview'], '(no text)'))))}",
       "wrap": true,
       "spacing": "Medium"
     }
