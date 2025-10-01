@@ -538,7 +538,6 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
               }
             }
             method: 'post'
-            // Teams Graph-style path (connector internal handling). Team and Channel IDs provided via parameters.
             path: '/beta/teams/@{encodeURIComponent(encodeURIComponent(parameters(\'teamId\')) )}/channels/@{encodeURIComponent(encodeURIComponent(parameters(\'channelId\')) )}/messages'
             body: {
               body: {
@@ -549,7 +548,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
                 {
                   contentType: 'application/vnd.microsoft.card.adaptive'
                   content: {
-                    $schema: 'http://adaptivecards.io/schemas/adaptive-card.json'
+                    '$schema': 'http://adaptivecards.io/schemas/adaptive-card.json'
                     type: 'AdaptiveCard'
                     version: '1.4'
                     body: [
@@ -558,7 +557,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
                         text: 'Claims Email Processed'
                         weight: 'Bolder'
                         size: 'Medium'
-                      },
+                      }
                       {
                         type: 'FactSet'
                         facts: [
@@ -567,7 +566,7 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
                           { title: 'Attachments:', value: '@{length(variables(\'attachmentUris\'))}' }
                           { title: 'Processed At (UTC):', value: '@{utcNow()}' }
                         ]
-                      },
+                      }
                       {
                         type: 'TextBlock'
                         text: 'Preview: @{substring(coalesce(body(\'Call_function_process_email\')?[\'data\']?[\'processedAttachments\']?[0]?[\'extractedTextPreview\'], \'(no text)\'), 0, 180)}'
@@ -759,3 +758,4 @@ resource teamsConnection 'Microsoft.Web/connections@2016-06-01' = {
     }
   }
 }
+
