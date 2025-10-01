@@ -531,69 +531,71 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             errorTime: '@utcNow()'
           }
         }
-        Post_adaptive_card_to_teams: {
-          runAfter: {
-            Handle_success_response: [
-              'Succeeded'
-            ]
-          }
-          type: 'ApiConnection'
-          inputs: {
-            host: {
-              connection: {
-                name: '@parameters(\'$connections\')[\'teams\'][\'connectionId\']'
-              }
-            }
-            method: 'post'
-            path: '/beta/teams/@{encodeURIComponent(encodeURIComponent(parameters(\'teamId\')) )}/channels/@{encodeURIComponent(encodeURIComponent(parameters(\'channelId\')) )}/messages'
-            body: {
-              body: {
-                contentType: 'html'
-                content: '<p>Claims email processed successfully.</p>'
-              }
-              attachments: [
-                {
-                  contentType: 'application/vnd.microsoft.card.adaptive'
-                  content: {
-                    '$schema': 'http://adaptivecards.io/schemas/adaptive-card.json'
-                    type: 'AdaptiveCard'
-                    version: '1.4'
-                    body: [
-                      {
-                        type: 'TextBlock'
-                        text: 'Claims Email Processed'
-                        weight: 'Bolder'
-                        size: 'Medium'
-                      }
-                      {
-                        type: 'FactSet'
-                        facts: [
-                          { title: 'Sender:', value: '@{outputs(\'Extract_email_data\')?[\'sender\']}' }
-                          { title: 'Subject:', value: '@{outputs(\'Extract_email_data\')?[\'subject\']}' }
-                          { title: 'Attachments:', value: '@{length(variables(\'attachmentUris\'))}' }
-                          { title: 'Processed At (UTC):', value: '@{utcNow()}' }
-                        ]
-                      }
-                      {
-                        type: 'TextBlock'
-                        text: 'Preview: @{if(greaterOrEquals(length(coalesce(body(\'Call_function_process_email\')?[\'data\']?[\'processedAttachments\']?[0]?[\'extractedTextPreview\'], \'(no text)\')), 180), substring(coalesce(body(\'Call_function_process_email\')?[\'data\']?[\'processedAttachments\']?[0]?[\'extractedTextPreview\'], \'(no text)\'), 0, 180), coalesce(body(\'Call_function_process_email\')?[\'data\']?[\'processedAttachments\']?[0]?[\'extractedTextPreview\'], \'(no text)\'))}'
-                        wrap: true
-                        spacing: 'Medium'
-                      }
-                    ]
-                    actions: [
-                      {
-                        type: 'Action.OpenUrl'
-                        title: 'Open Function App'
-                        url: 'https://${functionApp.properties.defaultHostName}'
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
-          }
+Post_adaptive_card_to_teams: {
+  runAfter: {
+    Handle_success_response: [
+      'Succeeded'
+    ]
+  }
+  type: 'ApiConnection'
+  inputs: {
+    host: {
+      connection: {
+        name: '@parameters(\'$connections\')[\'teams\'][\'connectionId\']'
+      }
+    }
+    method: 'post'
+    path: '/beta/teams/@{encodeURIComponent(encodeURIComponent(parameters(\'teamId\')) )}/channels/@{encodeURIComponent(encodeURIComponent(parameters(\'channelId\')) )}/messages'
+    body: {
+      body: {
+        contentType: 'html'
+        content: '<p>Claims email processed successfully.</p>'
+      }
+      attachments: [
+        {
+          contentType: 'application/vnd.microsoft.card.adaptive'
+          content: '''
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.4",
+  "body": [
+    {
+      "type": "TextBlock",
+      "text": "Claims Email Processed",
+      "weight": "Bolder",
+      "size": "Medium"
+    },
+    {
+      "type": "FactSet",
+      "facts": [
+        { "title": "Sender:", "value": "@{outputs('Extract_email_data')?['sender']}" },
+        { "title": "Subject:", "value": "@{outputs('Extract_email_data')?['subject']}" },
+        { "title": "Attachments:", "value": "@{length(variables('attachmentUris'))}" },
+        { "title": "Processed At (UTC):", "value": "@{utcNow()}" }
+      ]
+    },
+    {
+      "type": "TextBlock",
+      "text": "Preview: @{if(greaterOrEquals(length(coalesce(body('Call_function_process_email')?['data']?['processedAttachments']?[0]?['extractedTextPreview'], '(no text)')), 180), substring(coalesce(body('Call_function_process_email')?['data']?['processedAttachments']?[0]?['extractedTextPreview'], '(no text)'), 0, 180), coalesce(body('Call_function_process_email')?['data']?['processedAttachments']?[0]?['extractedTextPreview'], '(no text)')))}",
+      "wrap": true,
+      "spacing": "Medium"
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.OpenUrl",
+      "title": "Open Function App",
+      "url": "https://${functionApp.properties.defaultHostName}"
+    }
+  ]
+}
+'''
         }
+      ]
+    }
+  }
+}
       }
     }
     parameters: {
