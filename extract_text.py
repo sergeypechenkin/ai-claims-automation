@@ -598,10 +598,10 @@ def upload_and_get_sas(account_url: str, blob_name: str, local_file: str, expiry
 
 #file_path = "https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/vision/azure-ai-vision-imageanalysis/samples/sample.jpg"
 # file_path = "https://staiclaimsauto001.blob.core.windows.net/emailattachments/photos.docx?sp=r&st=2025-10-02T21:43:34Z&se=2025-11-03T06:58:34Z&spr=https&sv=2024-11-04&sr=b&sig=OyKOvaKeZSGZ9UDgxG7ACs6WRYQTanB%2F4LHW2%2BLU5qc%3D"
-file_path = "https://staiclaimsauto001.blob.core.windows.net/emailattachments/INV160_FIRTH_SCAFFOLDING_LTD.pdf?sp=r&st=2025-10-03T11:03:49Z&se=2025-10-03T19:18:49Z&spr=https&sv=2024-11-04&sr=b&sig=VWAWiykJQhjfS45e2eI%2B8gR1tlgYAiilrRoVX05C8NU%3D"
-message_text = "Hi Here’s the invoice from FIRTH SCAFFOLDING LTD for the work they provided. Please pay this in a timely fashion. Thank you for your business. FIRTH SCAFFOLDING LTD Invoice: INV160 Total: £1,026.00 Due: 29 Sep 2025 "
-print("\n")   
-print(extract_file_info(file_path))
+# file_path = "https://staiclaimsauto001.blob.core.windows.net/emailattachments/INV160_FIRTH_SCAFFOLDING_LTD.pdf?sp=r&st=2025-10-03T11:03:49Z&se=2025-10-03T19:18:49Z&spr=https&sv=2024-11-04&sr=b&sig=VWAWiykJQhjfS45e2eI%2B8gR1tlgYAiilrRoVX05C8NU%3D"
+# message_text = "Hi Here’s the invoice from FIRTH SCAFFOLDING LTD for the work they provided. Please pay this in a timely fashion. Thank you for your business. FIRTH SCAFFOLDING LTD Invoice: INV160 Total: £1,026.00 Due: 29 Sep 2025 "
+# print("\n")   
+# print(extract_file_info(file_path))
 
 
 
