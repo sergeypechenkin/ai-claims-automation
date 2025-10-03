@@ -8,7 +8,7 @@ Search for a claim reference number that begins with one of these prefixes:
 TPEH, TAAI, TEGH, TCCHH, THEC, TEGC, TAQC.
 If found, return the full reference number. If not found, return "None".
 Summary:
-Write a concise 1–2 sentence summary of the content.
+Write a concise 1–2 sentence summary of the content found, avoid mentioning what is absent.
 Output Format (always JSON):
 {
   "DocumentType": "Invoice | Quote | None",

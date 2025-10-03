@@ -1,7 +1,7 @@
-import base64
+#import base64
 import logging
 import os
-import re
+#import re
 import shutil
 #from xmlrpc import client
 from docx import Document
@@ -16,15 +16,15 @@ from urllib.parse import urlparse
 import requests
 import zipfile
 from azure.ai.vision.imageanalysis import ImageAnalysisClient
-from azure.ai.vision.imageanalysis.models import VisualFeatures
+#from azure.ai.vision.imageanalysis.models import VisualFeatures
 from azure.core.credentials import AzureKeyCredential
-from azure.core.exceptions import HttpResponseError
+#from azure.core.exceptions import HttpResponseError
 from azure.identity import DefaultAzureCredential
 import json
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 #from azure.ai.documentintelligence import DocumentIntelligenceClient
 from azure.core.credentials import AzureKeyCredential
-from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
+#from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
 from openai import AzureOpenAI 
 from datetime import datetime, timedelta
 from azure.storage.blob import (BlobServiceClient, generate_blob_sas, BlobSasPermissions)
@@ -392,7 +392,7 @@ def extract_file_info(file_path, ocr_text_threshold=50):
             try:
                 # Ensure we obtain an HTTPS-accessible URL for the input (handles '/container/blob', local path, or PIL.Image)
                 img_url = ensure_remote_image_url(file_path)
-                logging.info(f"Image URL for initial image '{file_path}': {img_url}")
+                logging.info(f"Image URL for initially image '{file_path}': {img_url}")
             except Exception as exc:
                 print(f"Failed to ensure remote URL for image '{file_path}': {exc}")
                 logging.warning(f"Failed to ensure remote URL for image '{file_path}': {exc}")
