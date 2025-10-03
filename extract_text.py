@@ -417,6 +417,7 @@ def count_tokens(model_name: str, text: str) -> int:
 
 def analyze_text(text: str) -> str:
     print(f"Text for analysis: {text}")
+    logging.info(f'Text for analysis: {text}')
     try:
         cfg = get_gpt5_client()
         client = cfg["client"]
@@ -433,7 +434,7 @@ def analyze_text(text: str) -> str:
 
     try:
         token_count = count_tokens(model_name, (prompt+text))
-        logging.info(f'Prompt + text token count: {token_count}')
+        logging.info(f'Text analysis. Prompt + text token count: {token_count}')
         response = client.chat.completions.create(
             messages=[
                 {
@@ -454,7 +455,7 @@ def analyze_text(text: str) -> str:
         logging.error("GPT-5 chat completion failed: %s", exc)
         return f"GPT-5 completion failed: {exc}"
 
-    logging.info(f'Customer wants {response.choices[0].message.content}')
+    logging.info(f'Text analysis response: {response.choices[0].message.content}')
     return str(response.choices[0].message.content)
 
 def analyze_image(image_url: str) -> str:
@@ -462,6 +463,7 @@ def analyze_image(image_url: str) -> str:
     Analyze image using GPT-5 by providing an image URL.
     This function expects a public/HTTPS image URL.
     """
+    logging.info(f'Analyzing image URL: {image_url}')
     if not _is_remote_path(image_url):
         raise ValueError("analyze_image expects an HTTP(S) URL")
 
@@ -496,7 +498,9 @@ def analyze_image(image_url: str) -> str:
         
         response = response.choices[0].message.content # + "\n" + "Input tokens used: " + str(response.usage.prompt_tokens) + "\n" + "Output tokens used: " + str(response.usage.completion_tokens)
         response = json.loads(response)
+        logging.info(f'Image analysis full response: {response}')
         cleaned_response = {k: v for k, v in response.items() if v != "None"}
+        logging.info(f'Image analysis cleaned response: {cleaned_response}')
         return json.dumps(cleaned_response, ensure_ascii=False, indent=2)
         
     except Exception:
