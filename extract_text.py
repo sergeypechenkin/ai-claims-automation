@@ -123,15 +123,35 @@ def _download_to_temp(url: str) -> str:
 
 @contextlib.contextmanager
 def _ensure_local_file(path: str):
-    if _is_remote_path(path):
-        temp_path = _download_to_temp(path)
-        try:
-            yield temp_path
-        finally:
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
-    else:
-        yield path
+	"""
+	Yield a local filesystem path for the given input.
+	- If path is an HTTP(S) URL -> download to temp and yield the temp path.
+	- If path is a URI-style path that starts with '/' -> convert to SAS URL (ensure_remote_image_url)
+	  then download and yield the temp path.
+	- Otherwise yield path as-is (assumed to be a local filesystem path).
+	"""
+	if _is_remote_path(path):
+		temp_path = _download_to_temp(path)
+		try:
+			yield temp_path
+		finally:
+			if os.path.exists(temp_path):
+				os.remove(temp_path)
+	elif isinstance(path, str) and path.startswith('/'):
+		# treat as storage URI path: convert to https SAS URL then download
+		try:
+			remote_url = ensure_remote_image_url(path)
+		except Exception as exc:
+			# bubble up a clear error so callers can handle/log it
+			raise RuntimeError(f"Failed to resolve storage URI to remote URL: {exc}") from exc
+		temp_path = _download_to_temp(remote_url)
+		try:
+			yield temp_path
+		finally:
+			if os.path.exists(temp_path):
+				os.remove(temp_path)
+	else:
+		yield path
 
 def _to_image_bytes(image_source):
     if isinstance(image_source, Image.Image):
