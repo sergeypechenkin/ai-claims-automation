@@ -427,7 +427,7 @@ def count_tokens(model_name: str, text: str) -> int:
 
 def analyze_text(text: str) -> str:
     print(f"Text for GPT-5 analysis: {text}")
-    logging.info(f'Text for GPT-5 analysis: {text[:300]}')
+    logging.info(f'Text for GPT-5 analysis: {text[:100]}')
     try:
         cfg = get_gpt5_client()
         client = cfg["client"]
@@ -537,19 +537,19 @@ def upload_and_get_sas(account_url: str, blob_name: str, local_file: str, expiry
 
     # Check for local dev override
     account_key = os.getenv("STORAGE_ACCOUNT_KEY")
-    email_attachments_container_name = os.getenv("EMAILATTACHMENTS_CONTAINER_NAME")
+    email_attachments_container_name = os.getenv("EMAIL_ATTACHMENTS_CONTAINER")
 
     if not account_key:
         try:
             with open("local.settings.json", "r") as fh:
                 settings = json.load(fh)["Values"]
             account_key = account_key or settings.get("STORAGE_ACCOUNT_KEY", "")
-            email_attachments_container_name = email_attachments_container_name or settings.get("EMAILATTACHMENTS_CONTAINER_NAME", "")
+            email_attachments_container_name = email_attachments_container_name or settings.get("EMAIL_ATTACHMENTS_CONTAINER", "")
         except FileNotFoundError:
             pass
 
     if not email_attachments_container_name:
-        raise ValueError("EMAILATTACHMENTS_CONTAINER_NAME is not configured")
+        raise ValueError("EMAIL_ATTACHMENTS_CONTAINER is not configured")
 
     if account_key:
         # Use Storage Key (local testing)
