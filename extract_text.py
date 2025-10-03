@@ -268,6 +268,7 @@ def extract_file_info(file_path, ocr_text_threshold=50):
                     img_path = os.path.join(img_dir, img_file)
                     try:
                         img_url = ensure_remote_image_url(img_path)
+                        logging.info(f"Image URL for extracted image '{img_path}': {img_url}")
                     except Exception as exc:
                         print(f"Failed to ensure remote URL for image '{img_path}': {exc}")
                         logging.warning(f"Failed to ensure remote URL for image '{img_path}': {exc}")   
@@ -330,6 +331,7 @@ def extract_file_info(file_path, ocr_text_threshold=50):
             logging.info("Image file detected")
             try:
                 img_url = ensure_remote_image_url(local_path)
+                logging.info(f"Image URL for initially image '{local_path}': {img_url}")
             except Exception as exc:
                 print(f"Failed to ensure remote URL for image '{local_path}': {exc}")
                 logging.warning(f"Failed to ensure remote URL for image '{local_path}': {exc}")
