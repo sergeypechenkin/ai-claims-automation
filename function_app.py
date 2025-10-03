@@ -40,7 +40,7 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
         sender = (data.get('sender') or '').strip()
         subject = (data.get('subject') or '').strip()
         body_text = (data.get('bodyText') or '').strip()
-        text = "Subject: " + subject + "\n\n" + body_text
+        text = "Subject: " + subject + "\n\n" + "Text: " + body_text
         email_blob_uri = data.get('emailBlobUri')
         attachment_uris: List[str] = data.get('attachmentUris', [])
 
@@ -57,13 +57,13 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
             blob_name = att.lstrip('/')  # normalize if path starts with /
             extract_file_info(att)
             processed.append((blob_name, extract_file_info(att)))
-            logging.info(f'Processing attachment {blob_name}')
+            logging.info(f'Function Processing attachment {blob_name}')
 
         # Convert processed list to a single string for analysis
         processed_text = '\n\n'.join(str(item) for item in processed)
         resp = analyze_text(processed_text)
         print("-----Message Analysis Result -----","/n", resp)
-        logging.info(f'Analysis result: {resp}')
+        logging.info(f'Function Analysis result: {resp}')
 
         resp = {
             "status": "success",

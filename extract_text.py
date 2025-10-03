@@ -151,7 +151,7 @@ def _to_image_bytes(image_source):
 
 def _get_storage_account_url():
     # try explicit blob endpoint first, then account name
-    url = os.getenv("STORAGE_ACCOUNT_BLOB_ENDPOINT")
+    url = os.getenv("STORAGE_ACCOUNT_BLOB_ENDPOINT", "").strip()
     
     if not url:
         # local.settings.json fallback
@@ -159,12 +159,11 @@ def _get_storage_account_url():
             with open("local.settings.json", "r") as fh:
                 settings = json.load(fh)["Values"]
             url = url or settings.get("STORAGE_ACCOUNT_BLOB_ENDPOINT")
-            if not url and settings.get("STORAGE_ACCOUNT_NAME"):
-                url = f"https://{settings.get('STORAGE_ACCOUNT_NAME')}.blob.core.windows.net"
+
         except Exception:
             pass
     if not url:
-        raise RuntimeError("Storage account URL not configured. Set STORAGE_ACCOUNT_URL or STORAGE_ACCOUNT_NAME.")
+        raise RuntimeError("Storage account URL not configured. Set STORAGE_ACCOUNT_BLOB_ENDPOINT.")
     return url
 
 def ensure_remote_image_url(image_source):
@@ -221,6 +220,7 @@ def extract_file_info(file_path, ocr_text_threshold=50):
             is_docx_package = zipfile.is_zipfile(local_path)
             if ext == ".doc" and not is_docx_package:
                 result["Summary"] = "Unsupported legacy DOC format."
+                logging.warning("Legacy .doc format detected, which is not supported.")
                 return result
             if is_docx_package:
                 with zipfile.ZipFile(local_path) as archive:
@@ -228,6 +228,7 @@ def extract_file_info(file_path, ocr_text_threshold=50):
                     if "word/document.xml" not in entries:
                         print("Word archive missing document content.")
                         result["Summary"] = "Unsupported Word archive structure."
+                        logging.warning("Word archive missing document content.")
                         return result
             doc = None
             if is_docx_package:
@@ -235,6 +236,7 @@ def extract_file_info(file_path, ocr_text_threshold=50):
                     doc = Document(local_path)
                 except ValueError as exc:
                     print(f"Failed to parse Word document, fallback to docx2txt: {exc}")
+                    logging.warning(f"Failed to parse Word document, fallback to docx2txt: {exc}")  
             if doc:
                 text_content = "\n".join([p.text for p in doc.paragraphs if p.text.strip()])
                 for table in doc.tables:
@@ -244,6 +246,7 @@ def extract_file_info(file_path, ocr_text_threshold=50):
                     tables.append(table_data)
                 if tables:
                     print(f"\033[92mExtracted tables from the document: {tables}\033[0m")
+                    logging.info(f'Extracted tables from the document: {tables}')
             else:
                 print("Docx2txt fallback for text extraction.")
                 text_content = ""
@@ -254,10 +257,12 @@ def extract_file_info(file_path, ocr_text_threshold=50):
                     extracted_text = docx2txt.process(local_path, img_dir)
                 except Exception as exc:
                     print(f"Docx2txt processing failed: {exc}")
+                    logging.warning(f"Docx2txt processing failed: {exc}")   
                     result["Summary"] = "Unable to process Word document."
                     return result
                 if not doc and extracted_text and not text_content.strip():
                     text_content = extracted_text
+                    logging.info(f"Extracted text from Word document: {text_content}")
                 img_files = os.listdir(img_dir)
                 for img_file in img_files:
                     img_path = os.path.join(img_dir, img_file)
@@ -265,18 +270,22 @@ def extract_file_info(file_path, ocr_text_threshold=50):
                         img_url = ensure_remote_image_url(img_path)
                     except Exception as exc:
                         print(f"Failed to ensure remote URL for image '{img_path}': {exc}")
+                        logging.warning(f"Failed to ensure remote URL for image '{img_path}': {exc}")   
                         ocr_text = ""
                     else:
                         ocr_text = analyze_image(img_url)
                     print(f"Image '{img_file}' analyzed" f" with OCR text: {ocr_text}")
+                    logging.info(f"Image '{img_file}' analyzed with OCR text: {ocr_text}")  
                     result["Images"].append({"filename": img_file, "ocr_text": ocr_text})
             except ValueError as exc:
                 print(f"Failed to extract Word document content: {exc}")
                 result["Summary"] = "Unable to process Word document."
+                logging.error(f"Failed to extract Word document content: {exc}")
                 return result
             finally:
                 shutil.rmtree(img_dir, ignore_errors=True)
                 result["Digital text"] = text_content + "\n" + "\n".join([str(t) for t in tables])
+                logging.info(f'Extracted digital text length: {len(text_content)} and tables: {tables}')
 
         # ----- PDF -----
         elif ext == ".pdf":
@@ -318,10 +327,12 @@ def extract_file_info(file_path, ocr_text_threshold=50):
         # ----- Images (jpg/png) -----
         elif ext in [".jpg", ".jpeg", ".png", ".tiff"]:
             print("Image file detected")
+            logging.info("Image file detected")
             try:
                 img_url = ensure_remote_image_url(local_path)
             except Exception as exc:
                 print(f"Failed to ensure remote URL for image '{local_path}': {exc}")
+                logging.warning(f"Failed to ensure remote URL for image '{local_path}': {exc}")
                 ocr_text = ""
             else:
                 ocr_text = analyze_image(img_url)
@@ -330,19 +341,18 @@ def extract_file_info(file_path, ocr_text_threshold=50):
                 "ocr_text": ocr_text
             })
             print(f"Image OCR text: {ocr_text[:100]}...")
+            logging.info(f"Image OCR text: {ocr_text[:100]}...")
 
         else:
             result["Summary"] = "Unsupported file format."
+            logging.warning("Unsupported file format encountered.")
             return result
 
     # ---------- Анализ текста ----------
-    
-    # Remove None values from result dict before converting to JSON
 
 
     # Convert result dict to string for analysis
     text_for_analysis = json.dumps(result, ensure_ascii=False, indent=2)
-    print(f"Text for analysis: {text_for_analysis}")
     return analyze_text(text_for_analysis)
 
 
@@ -416,8 +426,8 @@ def count_tokens(model_name: str, text: str) -> int:
 
 
 def analyze_text(text: str) -> str:
-    print(f"Text for analysis: {text}")
-    logging.info(f'Text for analysis: {text}')
+    print(f"Text for GPT-5 analysis: {text}")
+    logging.info(f'Text for GPT-5 analysis: {text[:300]}')
     try:
         cfg = get_gpt5_client()
         client = cfg["client"]
