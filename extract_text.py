@@ -341,7 +341,7 @@ def extract_file_info(file_path, ocr_text_threshold=50):
 
 
     # Convert result dict to string for analysis
-    text_for_analysis = message_text + "\n" + json.dumps(result, ensure_ascii=False, indent=2)
+    text_for_analysis = json.dumps(result, ensure_ascii=False, indent=2)
     print(f"Text for analysis: {text_for_analysis}")
     return analyze_text(text_for_analysis)
 
