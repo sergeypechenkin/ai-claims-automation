@@ -170,12 +170,72 @@ def ensure_remote_image_url(image_source):
     """
     Return an HTTPS-accessible URL for the given image_source.
     - If image_source is already an http(s) URL -> return as-is.
+    - If image_source is a URI path (starts with /) -> construct SAS URL from storage account.
     - If image_source is a local file path -> upload to storage and return SAS URL.
     - If image_source is a PIL.Image -> save to temp file, upload, cleanup, return SAS URL.
     """
     if isinstance(image_source, str):
         if _is_remote_path(image_source):
             return image_source
+        
+        # Check if it's a URI path (starts with /)
+        if image_source.startswith('/'):
+            account_url = _get_storage_account_url()
+            # Parse container and blob path from URI
+            parts = image_source.lstrip('/').split('/', 1)
+            if len(parts) == 2:
+                container_name, blob_path = parts
+            else:
+                raise ValueError(f"Invalid URI path format: {image_source}")
+            
+            # Generate SAS URL for existing blob
+            account_key = os.getenv("STORAGE_ACCOUNT_KEY")
+            if not account_key:
+                try:
+                    with open("local.settings.json", "r") as fh:
+                        settings = json.load(fh)["Values"]
+                    account_key = settings.get("STORAGE_ACCOUNT_KEY", "")
+                except FileNotFoundError:
+                    pass
+            
+            if account_key:
+                blob_service_client = BlobServiceClient(account_url=account_url, credential=account_key)
+                user_delegation_key = None
+            else:
+                credential = DefaultAzureCredential()
+                blob_service_client = BlobServiceClient(account_url=account_url, credential=credential)
+                user_delegation_key = blob_service_client.get_user_delegation_key(
+                    key_start_time=datetime.utcnow(),
+                    key_expiry_time=datetime.utcnow() + timedelta(hours=1)
+                )
+            
+            blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_path)
+            
+            account_name = blob_service_client.account_name or os.getenv("STORAGE_ACCOUNT_NAME")
+            if not account_name:
+                raise ValueError("Storage account name could not be determined")
+            
+            if account_key:
+                sas_token = generate_blob_sas(
+                    account_name=account_name,
+                    container_name=container_name,
+                    blob_name=blob_path,
+                    account_key=account_key,
+                    permission=BlobSasPermissions(read=True),
+                    expiry=datetime.utcnow() + timedelta(hours=1)
+                )
+            else:
+                sas_token = generate_blob_sas(
+                    account_name=account_name,
+                    container_name=container_name,
+                    blob_name=blob_path,
+                    user_delegation_key=user_delegation_key,
+                    permission=BlobSasPermissions(read=True),
+                    expiry=datetime.utcnow() + timedelta(hours=1)
+                )
+            
+            return f"{blob_client.url}?{sas_token}"
+        
         # local file path -> upload
         account_url = _get_storage_account_url()
         blob_name = f"tmp_uploads/{int(time.time())}_{os.path.basename(image_source)}"
@@ -200,7 +260,7 @@ def ensure_remote_image_url(image_source):
                 except Exception:
                     pass
 
-    raise TypeError("ensure_remote_image_url accepts HTTP URL, local filepath or PIL.Image")
+    raise TypeError("ensure_remote_image_url accepts HTTP URL, URI path, local filepath or PIL.Image")
 
 def extract_file_info(file_path, ocr_text_threshold=50):
     ext = _resolve_extension(file_path)
@@ -330,11 +390,12 @@ def extract_file_info(file_path, ocr_text_threshold=50):
             print("Image file detected")
             logging.info("Image file detected")
             try:
-                img_url = ensure_remote_image_url(local_path)
-                logging.info(f"Image URL for initially image '{local_path}': {img_url}")
+                # Ensure we obtain an HTTPS-accessible URL for the input (handles '/container/blob', local path, or PIL.Image)
+                img_url = ensure_remote_image_url(file_path)
+                logging.info(f"Image URL for initial image '{file_path}': {img_url}")
             except Exception as exc:
-                print(f"Failed to ensure remote URL for image '{local_path}': {exc}")
-                logging.warning(f"Failed to ensure remote URL for image '{local_path}': {exc}")
+                print(f"Failed to ensure remote URL for image '{file_path}': {exc}")
+                logging.warning(f"Failed to ensure remote URL for image '{file_path}': {exc}")
                 ocr_text = ""
             else:
                 ocr_text = analyze_image(img_url)
@@ -612,12 +673,12 @@ def upload_and_get_sas(account_url: str, blob_name: str, local_file: str, expiry
 
 
 
-#file_path = "https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/vision/azure-ai-vision-imageanalysis/samples/sample.jpg"
+file_path = "/emailattachments/20251003140544_20250919_141434.jpg"
 # file_path = "https://staiclaimsauto001.blob.core.windows.net/emailattachments/photos.docx?sp=r&st=2025-10-02T21:43:34Z&se=2025-11-03T06:58:34Z&spr=https&sv=2024-11-04&sr=b&sig=OyKOvaKeZSGZ9UDgxG7ACs6WRYQTanB%2F4LHW2%2BLU5qc%3D"
 # file_path = "https://staiclaimsauto001.blob.core.windows.net/emailattachments/INV160_FIRTH_SCAFFOLDING_LTD.pdf?sp=r&st=2025-10-03T11:03:49Z&se=2025-10-03T19:18:49Z&spr=https&sv=2024-11-04&sr=b&sig=VWAWiykJQhjfS45e2eI%2B8gR1tlgYAiilrRoVX05C8NU%3D"
 # message_text = "Hi Here’s the invoice from FIRTH SCAFFOLDING LTD for the work they provided. Please pay this in a timely fashion. Thank you for your business. FIRTH SCAFFOLDING LTD Invoice: INV160 Total: £1,026.00 Due: 29 Sep 2025 "
 # print("\n")   
-# print(extract_file_info(file_path))
+print(extract_file_info(file_path))
 
 
 
