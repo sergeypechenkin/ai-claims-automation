@@ -5,3 +5,10 @@ azure-storage-blob
 azure-identity
 openai
 tiktoken
+docx
+python-docx   
+docx2txt
+pdfplumber
+pdf2image 
+pillow
+azure.ai.vision.imageanalysis

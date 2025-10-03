@@ -14,4 +14,4 @@ param teamId = 'be10bf38-a53e-463c-b3d2-66a38ea12e55'
 param gpt5_deployment = 'override-in-ci'
 param gpt5_model = 'override-in-ci'
 param gpt5_endpoint = 'override-in-ci'
-
+param ai_services_endpoint = 'override-in-ci'
