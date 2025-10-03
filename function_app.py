@@ -52,15 +52,19 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
             )
 
         processed = []
-        processed.append(text)
+        processed.append(("Email:", text))
         for att in attachment_uris:
+            logging.info(f'Function cycle Processing attachment: {att}')
             blob_name = att.lstrip('/')  # normalize if path starts with /
-            extract_file_info(att)
-            processed.append((blob_name, extract_file_info(att)))
-            logging.info(f'Function Processing attachment {blob_name}')
+            image_processing_result = extract_file_info(att)
+            logging.info(f'Function cycle extracted result for attachment {att}: {image_processing_result}')
+            processed.append((blob_name, image_processing_result))
+
 
         # Convert processed list to a single string for analysis
+
         processed_text = '\n\n'.join(str(item) for item in processed)
+        logging.info(f'Function  Processed all attachments, text for analysis: {processed_text[:500]}...')  # Log first 500 chars
         resp = analyze_text(processed_text)
         print("-----Message Analysis Result -----","/n", resp)
         logging.info(f'Function Analysis result: {resp}')
