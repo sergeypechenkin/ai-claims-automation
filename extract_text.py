@@ -446,6 +446,7 @@ def extract_file_info(file_path, ocr_text_threshold=50):
             if not scanned:
                 file_type = "digital"
                 print(f"Document classified as {file_type}.")
+                result["Digital text"] = text_content + "\n" + "\n".join([str(t) for t in tables])
             else:
                 print("No text layer found, performing OCR.")
                 pages = convert_from_path(local_path)
@@ -458,6 +459,8 @@ def extract_file_info(file_path, ocr_text_threshold=50):
                         page_text = ""
                     else:
                         page_text = analyze_image(page_url)
+                        print(f"OCR text for PDF page: {page_text[:100]}...")
+                        logging.info(f"OCR text for PDF page: {page_text[:100]}...")    
                     if page_text:
                          ocr_chunks.append(page_text)
                 if ocr_chunks:
@@ -751,7 +754,7 @@ def upload_and_get_sas(account_url: str, blob_name: str, local_file: str, expiry
 if __name__ == "__main__":
     # Example usage for testing
     #file_path = "https://staiclaimsauto001.blob.core.windows.net/emailattachments/20251003154607_photos.docx?sp=r&st=2025-10-04T11:03:40Z&se=2025-10-11T19:18:40Z&spr=https&sv=2024-11-04&sr=b&sig=%2FvFXazh2nLE%2BAy0ovcVQTNexNcFRWaP7YznxQZZkt9M%3D"
-    file_path = "/emailattachments/20251004125906_photos.docx"
+    file_path = "https://staiclaimsauto001.blob.core.windows.net/emailattachments/20251004215943_INV160_FIRTH_SCAFFOLDING_LTD.pdf?sp=r&st=2025-10-04T22:49:42Z&se=2025-10-05T07:04:42Z&spr=https&sv=2024-11-04&sr=b&sig=a3ISw2U3CQFlEDfUdCBoQ%2BJ2cQB91mtmOExfF7X%2FSig%3D"
     print(extract_file_info(file_path))
 
 
