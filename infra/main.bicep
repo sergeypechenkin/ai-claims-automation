@@ -149,7 +149,7 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
         }
         {
           name: 'STORAGE_ACCOUNT_BLOB_ENDPOINT'
-          value: 'https://${storageAccount.name}.blob.core.windows.net'
+          value: storageAccount.properties.primaryEndpoints.blob
         }
         {
           name: 'AZURE_STORAGE_CONNECTION_STRING'
@@ -264,10 +264,6 @@ resource conversionserviceConnection 'Microsoft.Web/connections@2016-06-01' = {
 var blobServiceEndpoint = string(storageAccount.properties.primaryEndpoints.blob)
 
 resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
-  dependsOn: [
-    functionApp  // ensure Function App (host key) exists before Logic App deployment
-    azureblobConnection // ensure the connection is fully created first
-  ]
   name: logicAppName
   location: location
   tags: {
@@ -567,31 +563,68 @@ Post_adaptive_card_to_teams: {
   "body": [
     {
       "type": "TextBlock",
-      "text": "Claims Email Processed",
+      "text": "AI Claims Processing Results",
       "weight": "Bolder",
-      "size": "Medium"
+      "size": "Large",
+      "color": "Accent"
     },
     {
-      "type": "FactSet",
-      "facts": [
-        { "title": "Sender:", "value": "@{outputs('Extract_email_data')?['sender']}" },
-        { "title": "Subject:", "value": "@{outputs('Extract_email_data')?['subject']}" },
-        { "title": "Attachments:", "value": "@{length(variables('attachmentUris'))}" },
-        { "title": "Processed At (UTC):", "value": "@{utcNow()}" }
+      "type": "Container",
+      "style": "emphasis",
+      "items": [
+        {
+          "type": "ColumnSet",
+          "columns": [
+            {
+              "type": "Column",
+              "width": "stretch",
+              "items": [
+                {
+                  "type": "FactSet",
+                  "facts": [
+                    { "title": "📧 Sender:", "value": "@{body('Call_function_process_email')?['data']?['sender']}" },
+                    { "title": "📋 Subject:", "value": "@{outputs('Extract_email_data')?['subject']}" },
+                    { "title": "📎 Attachments:", "value": "@{length(variables('attachmentUris'))}" },
+                    { "title": "⏰ Processed At:", "value": "@{formatDateTime(utcNow(), 'yyyy-MM-dd HH:mm:ss')} UTC" }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       ]
     },
     {
-      "type": "TextBlock",
-      "text": "Preview: @{substring(coalesce(body('Call_function_process_email')?['data']?['processedAttachments']?[0]?['extractedTextPreview'], '(no text)'), 0, min(180, length(coalesce(body('Call_function_process_email')?['data']?['processedAttachments']?[0]?['extractedTextPreview'], '(no text)'))))}",
-      "wrap": true,
-      "spacing": "Medium"
+      "type": "Container",
+      "style": "good",
+      "items": [
+        {
+          "type": "TextBlock",
+          "text": "🤖 AI Analysis Results",
+          "weight": "Bolder",
+          "size": "Medium",
+          "spacing": "Medium"
+        },
+        {
+          "type": "TextBlock",
+          "text": "@{coalesce(string(body('Call_function_process_email')?['data']?['Summary']), 'No analysis results available')}",
+          "wrap": true,
+          "spacing": "Small",
+          "fontType": "Monospace"
+        }
+      ]
     }
   ],
   "actions": [
     {
       "type": "Action.OpenUrl",
-      "title": "Open Function App",
+      "title": "🔗 View Function App",
       "url": "https://${functionApp.properties.defaultHostName}"
+    },
+    {
+      "type": "Action.OpenUrl",
+      "title": "📊 View Logic App",
+      "url": "https://portal.azure.com/#@microsoft.onmicrosoft.com/resource/subscriptions/@{subscription().subscriptionId}/resourceGroups/@{resourceGroup().name}/providers/Microsoft.Logic/workflows/@{workflow().name}/overview"
     }
   ]
 }
@@ -668,7 +701,6 @@ resource azureblobConnection 'Microsoft.Web/connections@2016-06-01' = {
     }
   }
   dependsOn: [
-    storageAccount
     emailMessagesContainer
     emailAttachmentsContainer
   ]
