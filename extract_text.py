@@ -25,6 +25,7 @@ import json
 
 
 
+
 def get_gpt5_client():
     gpt5_endpoint = os.getenv("GPT5_ENDPOINT", "").strip()
     gpt5_deployment = os.getenv("GPT5_DEPLOYMENT", "").strip()
@@ -746,9 +747,12 @@ def upload_and_get_sas(account_url: str, blob_name: str, local_file: str, expiry
 
 
 
-#file_path = "https://staiclaimsauto001.blob.core.windows.net/emailattachments/20251003154607_photos.docx?sp=r&st=2025-10-04T11:03:40Z&se=2025-10-11T19:18:40Z&spr=https&sv=2024-11-04&sr=b&sig=%2FvFXazh2nLE%2BAy0ovcVQTNexNcFRWaP7YznxQZZkt9M%3D"
-file_path = "/emailattachments/20251003154607_photos.docx"
-print(extract_file_info(file_path))
+# Test code - only run when script is executed directly
+if __name__ == "__main__":
+    # Example usage for testing
+    #file_path = "https://staiclaimsauto001.blob.core.windows.net/emailattachments/20251003154607_photos.docx?sp=r&st=2025-10-04T11:03:40Z&se=2025-10-11T19:18:40Z&spr=https&sv=2024-11-04&sr=b&sig=%2FvFXazh2nLE%2BAy0ovcVQTNexNcFRWaP7YznxQZZkt9M%3D"
+    file_path = "/emailattachments/20251003154607_photos.docx"
+    print(extract_file_info(file_path))
 
 
 

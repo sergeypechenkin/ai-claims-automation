@@ -33,6 +33,7 @@ from azure.storage.blob import (BlobServiceClient, generate_blob_sas, BlobSasPer
 import time
 import uuid
 
+
 def get_gpt5_client():
     gpt5_endpoint = os.getenv("GPT5_ENDPOINT", "").strip()
     gpt5_deployment = os.getenv("GPT5_DEPLOYMENT", "").strip()
