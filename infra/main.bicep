@@ -621,10 +621,10 @@ Post_adaptive_card_to_teams: {
       "title": "🔗 View Function App",
       "url": "https://${functionApp.properties.defaultHostName}"
     },
-    {
+   {
       "type": "Action.OpenUrl",
-      "title": "📊 View Logic App",
-      "url": "https://portal.azure.com/#@microsoft.onmicrosoft.com/resource/subscriptions/@{subscription().subscriptionId}/resourceGroups/@{resourceGroup().name}/providers/Microsoft.Logic/workflows/@{workflow().name}/overview"
+      "title": "🔗 View Message",
+      "url": "https://${functionApp.properties.defaultHostName}"
     }
   ]
 }
