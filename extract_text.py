@@ -418,9 +418,9 @@ def extract_file_info(file_path, ocr_text_threshold=50):
                         logging.warning(f"Failed to upload/analyze image '{img_path}': {exc}")
                         ocr_text = ""
 
-                print(f"Image '{img_file}' analyzed" f" with OCR text: {ocr_text}")
-                logging.info(f"Image '{img_file}' analyzed with OCR text: {ocr_text}")  
-                result["Images"].append({"filename": img_file, "ocr_text": ocr_text})
+                    print(f"Image '{img_file}' analyzed" f" with OCR text: {ocr_text}")
+                    logging.info(f"Image '{img_file}' analyzed with OCR text: {ocr_text}")  
+                    result["Images"].append({"filename": img_file, "ocr_text": ocr_text})
             except ValueError as exc:
                 print(f"Failed to extract Word document content: {exc}")
                 result["Summary"] = "Unable to process Word document."
