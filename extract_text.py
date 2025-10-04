@@ -29,7 +29,7 @@ from openai import AzureOpenAI
 from datetime import datetime, timedelta
 from azure.storage.blob import (BlobServiceClient, generate_blob_sas, BlobSasPermissions)
 import time
-
+import uuid
 
 def get_gpt5_client():
     gpt5_endpoint = os.getenv("GPT5_ENDPOINT", "").strip()
@@ -76,7 +76,6 @@ def get_gpt5_client():
         "deployment": gpt5_deployment,
         "model_name": gpt5_model_name
     }
-
 def get_ai_services_client():
     endpoint = os.getenv("AI_SERVICES_ENDPOINT", "").strip()
     key = os.getenv("AI_SERVICES_KEY", "").strip()
@@ -100,19 +99,15 @@ def get_ai_services_client():
 
     client = ImageAnalysisClient(endpoint=endpoint, credential=credential)
     return client
-
 def _is_remote_path(path: str) -> bool:
     parsed = urlparse(path)
     return parsed.scheme in ("http", "https")
-
 def _resolve_extension(path: str) -> str:
     target = urlparse(path).path if _is_remote_path(path) else path
     return os.path.splitext(target)[1].lower()
-
 def _extract_filename(path: str) -> str:
     parsed = urlparse(path)
     return os.path.basename(parsed.path) if parsed.scheme else os.path.basename(path)
-
 def _download_to_temp(url: str) -> str:
     suffix = os.path.splitext(urlparse(url).path)[1] or ".tmp"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -152,7 +147,6 @@ def _ensure_local_file(path: str):
 				os.remove(temp_path)
 	else:
 		yield path
-
 def _to_image_bytes(image_source):
     if isinstance(image_source, Image.Image):
         img = image_source.convert("RGB") if image_source.mode not in ("RGB", "RGBA", "L") else image_source
@@ -168,7 +162,6 @@ def _to_image_bytes(image_source):
         with open(image_source, "rb") as fh:
             return fh.read()
     raise TypeError(f"Unsupported image source type: {type(image_source)!r}")
-
 def _get_storage_account_url():
     # try explicit blob endpoint first, then account name
     url = os.getenv("STORAGE_ACCOUNT_BLOB_ENDPOINT", "").strip()
@@ -185,6 +178,76 @@ def _get_storage_account_url():
     if not url:
         raise RuntimeError("Storage account URL not configured. Set STORAGE_ACCOUNT_BLOB_ENDPOINT.")
     return url
+
+def _upload_file_to_container_and_get_sas(account_url: str, container_name: str, blob_name: str, local_file: str, expiry_hours: int = 1) -> str:
+	"""
+	Upload a local file to the given container and return a read-only SAS URL.
+	(Compact helper used for uploading temp images to a specific container, e.g. "tems".)
+	"""
+	account_key = os.getenv("STORAGE_ACCOUNT_KEY")
+	if not account_key:
+		try:
+			with open("local.settings.json", "r") as fh:
+				settings = json.load(fh)["Values"]
+			account_key = account_key or settings.get("STORAGE_ACCOUNT_KEY", "")
+		except FileNotFoundError:
+			pass
+
+	if account_key:
+		blob_service_client = BlobServiceClient(account_url=account_url, credential=account_key)
+		user_delegation_key = None
+	else:
+		credential = DefaultAzureCredential()
+		blob_service_client = BlobServiceClient(account_url=account_url, credential=credential)
+		user_delegation_key = blob_service_client.get_user_delegation_key(
+			key_start_time=datetime.utcnow(),
+			key_expiry_time=datetime.utcnow() + timedelta(hours=expiry_hours)
+		)
+
+	# Ensure container exists
+	container_client = blob_service_client.get_container_client(container_name)
+	try:
+		container_client.create_container()
+	except Exception:
+		pass
+
+	blob_client = container_client.get_blob_client(blob_name)
+	with open(local_file, "rb") as data:
+		blob_client.upload_blob(data, overwrite=True)
+
+	account_name = blob_service_client.account_name or os.getenv("STORAGE_ACCOUNT_NAME")
+	if not account_name:
+		raise ValueError("Storage account name could not be determined")
+
+	if account_key and blob_service_client.account_name:
+		sas_token = generate_blob_sas(
+			account_name=account_name,
+			container_name=container_name,
+			blob_name=blob_name,
+			account_key=account_key,
+			permission=BlobSasPermissions(read=True),
+			expiry=datetime.utcnow() + timedelta(hours=expiry_hours)
+		)
+	else:
+		sas_token = generate_blob_sas(
+			account_name=account_name,
+			container_name=container_name,
+			blob_name=blob_name,
+			user_delegation_key=user_delegation_key,
+			permission=BlobSasPermissions(read=True),
+			expiry=datetime.utcnow() + timedelta(hours=expiry_hours)
+		)
+
+	return f"{blob_client.url}?{sas_token}"
+
+def upload_temp_image_and_get_url(local_file_path: str, container: str = "tems") -> str:
+	"""
+	Upload the given local image to the specified container and return SAS URL.
+	"""
+	account_url = _get_storage_account_url()
+	blob_name = f"{int(time.time())}_{uuid.uuid4().hex}_{os.path.basename(local_file_path)}"
+	return _upload_file_to_container_and_get_sas(account_url, container, blob_name, local_file_path)
+
 
 def ensure_remote_image_url(image_source):
     """
@@ -281,7 +344,6 @@ def ensure_remote_image_url(image_source):
                     pass
 
     raise TypeError("ensure_remote_image_url accepts HTTP URL, URI path, local filepath or PIL.Image")
-
 def extract_file_info(file_path, ocr_text_threshold=50):
     ext = _resolve_extension(file_path)
     print(f"\033[93mProcessing file: {file_path} with extension {ext}\033[0m")
@@ -290,7 +352,6 @@ def extract_file_info(file_path, ocr_text_threshold=50):
         "Digital text": "",
         "Images": []   # list with results for images
     }
-
     text_content = ""
     tables = []
     file_type = "unknown"
@@ -348,17 +409,18 @@ def extract_file_info(file_path, ocr_text_threshold=50):
                 for img_file in img_files:
                     img_path = os.path.join(img_dir, img_file)
                     try:
-                        img_url = ensure_remote_image_url(img_path)
-                        logging.info(f"Image URL for extracted image '{img_path}': {img_url}")
-                    except Exception as exc:
-                        print(f"Failed to ensure remote URL for image '{img_path}': {exc}")
-                        logging.warning(f"Failed to ensure remote URL for image '{img_path}': {exc}")   
-                        ocr_text = ""
-                    else:
+                        # upload extracted image to "tems" container and get SAS URL
+                        img_url = upload_temp_image_and_get_url(img_path, container="tems")
+                        logging.info(f"Uploaded extracted image '{img_path}' -> {img_url}")
                         ocr_text = analyze_image(img_url)
-                    print(f"Image '{img_file}' analyzed" f" with OCR text: {ocr_text}")
-                    logging.info(f"Image '{img_file}' analyzed with OCR text: {ocr_text}")  
-                    result["Images"].append({"filename": img_file, "ocr_text": ocr_text})
+                    except Exception as exc:
+                        print(f"Failed to upload/analyze image '{img_path}': {exc}")
+                        logging.warning(f"Failed to upload/analyze image '{img_path}': {exc}")
+                        ocr_text = ""
+
+                print(f"Image '{img_file}' analyzed" f" with OCR text: {ocr_text}")
+                logging.info(f"Image '{img_file}' analyzed with OCR text: {ocr_text}")  
+                result["Images"].append({"filename": img_file, "ocr_text": ocr_text})
             except ValueError as exc:
                 print(f"Failed to extract Word document content: {exc}")
                 result["Summary"] = "Unable to process Word document."
@@ -507,8 +569,6 @@ def count_tokens(model_name: str, text: str) -> int:
         approx = max(1, int(len(text) / 4))
         return approx
     return len(text.split())
-
-
 def analyze_text(text: str) -> str:
     print(f"Text for GPT-5 analysis: {text}")
     logging.info(f'Text for GPT-5 analysis: {text[:100]}')
@@ -551,7 +611,6 @@ def analyze_text(text: str) -> str:
 
     logging.info(f'Text analysis response: {response.choices[0].message.content}')
     return str(response.choices[0].message.content)
-
 def analyze_image(image_url: str) -> str:
     """
     Analyze image using GPT-5 by providing an image URL.
@@ -599,7 +658,6 @@ def analyze_image(image_url: str) -> str:
         
     except Exception:
         return str(response)
-
 def upload_and_get_sas(account_url: str, blob_name: str, local_file: str, expiry_hours: int = 1) -> str:
 
     """
