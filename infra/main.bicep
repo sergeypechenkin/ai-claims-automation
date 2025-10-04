@@ -576,8 +576,8 @@ Post_adaptive_card_to_teams: {
       "facts": [
         { "title": "Sender:", "value": "@{outputs('Extract_email_data')?['sender']}" },
         { "title": "Subject:", "value": "@{outputs('Extract_email_data')?['subject']}" },
-        { "title": "Document Type:", "value": "@{coalesce(body('Call_function_process_email')?['DocumentType'], 'N/A')}" },
-        { "title": "Claim Reference:", "value": "@{coalesce(body('Call_function_process_email')?['ClaimReference'], 'None')}" },
+        { "title": "Document Type:", "value": "@{coalesce(json(body('Call_function_process_email')?['DocumentType']), 'N/A')}" },
+        { "title": "Claim Reference:", "value": "@{coalesce(json(body('Call_function_process_email')?['ClaimReference']), 'None')}" },
         { "title": "Attachments:", "value": "@{length(variables('attachmentUris'))}" },
         { "title": "Processed At (UTC):", "value": "@{utcNow()}" }
       ]
@@ -590,7 +590,7 @@ Post_adaptive_card_to_teams: {
     },
     {
       "type": "TextBlock",
-      "text": "@{coalesce(body('Call_function_process_email')?['Summary'], 'No summary available')}",
+      "text": "@{coalesce(json(body('Call_function_process_email')?['Summary']), 'No summary available')}",
       "wrap": true,
       "spacing": "Small"
     }
