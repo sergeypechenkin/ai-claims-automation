@@ -54,28 +54,23 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
         processed = []
         processed.append(("Email:", text))
         for att in attachment_uris:
-            logging.info(f'Function cycle Processing attachment: {att}')
+            logging.info(f'--|| Function ||--cycle Processing attachment: {att}')
             blob_name = att.lstrip('/')  # normalize if path starts with /
             image_processing_result = extract_file_info(att)
-            logging.info(f'Function cycle extracted result for attachment {att}: {image_processing_result}')
+            logging.info(f'--|| Function ||-- cycle extracted result for attachment {att}: {image_processing_result}')
             processed.append((blob_name, image_processing_result))
 
 
         # Convert processed list to a single string for analysis
 
         processed_text = '\n\n'.join(str(item) for item in processed)
-        logging.info(f'Function  Processed all attachments, text for analysis: {processed_text[:500]}...')  # Log first 500 chars
+        logging.info(f'--|| Function ||-- Processed all attachments, text for analysis: {processed_text}')  # Log first 500 chars
         resp = analyze_text(processed_text)
-        print("-----Message Analysis Result -----","/n", resp)
-        logging.info(f'Function Analysis result: {resp}')
+        
+        print("--|| Function ||-- Analysis result: ","/n", resp)
+        logging.info(f'--|| Function ||-- Analysis result: {resp}')
 
-        resp = {
-            "status": "success",
-            "data": {
-                "sender": sender,
-                "Summary": resp
-            }
-        }
+
         return func.HttpResponse(json.dumps(resp, indent=2), status_code=200, mimetype="application/json")
     except ValueError as ve:
         return func.HttpResponse(json.dumps({"error": "Invalid JSON", "details": str(ve)}),
