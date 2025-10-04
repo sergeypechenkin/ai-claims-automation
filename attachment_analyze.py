@@ -345,6 +345,7 @@ def extract_docx(file_path):
     """
     try:
         # Extract text
+        doc = Document(file_path)
         text = docx2txt.extract(file_path)
         
         # Extract structured content

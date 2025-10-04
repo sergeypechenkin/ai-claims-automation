@@ -148,6 +148,10 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
           value: storageAccount.name
         }
         {
+          name: 'STORAGE_ACCOUNT_BLOB_ENDPOINT'
+          value: storageAccount.properties.primaryEndpoints.blob
+        }
+        {
           name: 'AZURE_STORAGE_CONNECTION_STRING'
           value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
         }
