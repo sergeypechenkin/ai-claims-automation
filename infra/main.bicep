@@ -148,10 +148,6 @@ resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
           value: storageAccount.name
         }
         {
-          name: 'STORAGE_ACCOUNT_BLOB_ENDPOINT'
-          value: storageAccount.properties.primaryEndpoints.blob
-        }
-        {
           name: 'AZURE_STORAGE_CONNECTION_STRING'
           value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
         }
@@ -264,6 +260,10 @@ resource conversionserviceConnection 'Microsoft.Web/connections@2016-06-01' = {
 var blobServiceEndpoint = string(storageAccount.properties.primaryEndpoints.blob)
 
 resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
+  dependsOn: [
+    functionApp  // ensure Function App (host key) exists before Logic App deployment
+    azureblobConnection // ensure the connection is fully created first
+  ]
   name: logicAppName
   location: location
   tags: {
@@ -555,7 +555,43 @@ Post_adaptive_card_to_teams: {
         {
           id: '1'
           contentType: 'application/vnd.microsoft.card.adaptive'
-          content: '@{json(\'{"$schema":"http://adaptivecards.io/schemas/adaptive-card.json","type":"AdaptiveCard","version":"1.4","body":[{"type":"TextBlock","text":"AI Claims Processing Results","weight":"Bolder","size":"Large","color":"Accent"},{"type":"Container","style":"emphasis","items":[{"type":"ColumnSet","columns":[{"type":"Column","width":"stretch","items":[{"type":"FactSet","facts":[{"title":"📧 Sender:","value":"@{body(\'Call_function_process_email\')?[\'data\']?[\'sender\']}"},{"title":"📋 Subject:","value":"@{outputs(\'Extract_email_data\')?[\'subject\']}"},{"title":"📎 Attachments:","value":"@{length(variables(\'attachmentUris\'))}"},{"title":"⏰ Processed At:","value":"@{formatDateTime(utcNow(), \'yyyy-MM-dd HH:mm:ss\')} UTC"}]}]}]}]},{"type":"Container","style":"good","items":[{"type":"TextBlock","text":"🤖 AI Analysis Results","weight":"Bolder","size":"Medium","spacing":"Medium"},{"type":"TextBlock","text":"@{coalesce(string(body(\'Call_function_process_email\')?[\'data\']?[\'Summary\']), \'No analysis results available\')}","wrap":true,"spacing":"Small","fontType":"Monospace"}]}],"actions":[{"type":"Action.OpenUrl","title":"🔗 View Function App","url":"https://\${functionApp.properties.defaultHostName}"},{"type":"Action.OpenUrl","title":"🔗 View Message","url":"https://\${functionApp.properties.defaultHostName}"}]}\')}'
+          content: '''
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.4",
+  "body": [
+    {
+      "type": "TextBlock",
+      "text": "Claims Email Processed",
+      "weight": "Bolder",
+      "size": "Medium"
+    },
+    {
+      "type": "FactSet",
+      "facts": [
+        { "title": "Sender:", "value": "@{outputs('Extract_email_data')?['sender']}" },
+        { "title": "Subject:", "value": "@{outputs('Extract_email_data')?['subject']}" },
+        { "title": "Attachments:", "value": "@{length(variables('attachmentUris'))}" },
+        { "title": "Processed At (UTC):", "value": "@{utcNow()}" }
+      ]
+    },
+    {
+      "type": "TextBlock",
+      "text": "Preview: @{substring(coalesce(body('Call_function_process_email')?['data']?['processedAttachments']?[0]?['extractedTextPreview'], '(no text)'), 0, min(180, length(coalesce(body('Call_function_process_email')?['data']?['processedAttachments']?[0]?['extractedTextPreview'], '(no text)'))))}",
+      "wrap": true,
+      "spacing": "Medium"
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.OpenUrl",
+      "title": "Open Function App",
+      "url": "https://${functionApp.properties.defaultHostName}"
+    }
+  ]
+}
+'''
         }
       ]
     }
@@ -628,6 +664,7 @@ resource azureblobConnection 'Microsoft.Web/connections@2016-06-01' = {
     }
   }
   dependsOn: [
+    storageAccount
     emailMessagesContainer
     emailAttachmentsContainer
   ]
