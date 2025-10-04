@@ -16,10 +16,9 @@ This guide provides comprehensive instructions for setting up CI/CD for your Azu
 1. **Azure Subscription** with sufficient permissions
 2. **Azure CLI** installed locally
 3. **Git repository** (GitHub or Azure DevOps)
-4. **Python 3.12** runtime
-
-register Microsoft.AlertsManagement
-assign Azure Foundry resoure Cognitive Services OpenAI Contributor/User to Functions Managed Identity (if not created via YML)
+4. **Python 3.11.9** runtime for local Function testing
+5. **Register** Microsoft.AlertsManagement
+6. **Assign** Azure Foundry resoure Cognitive Services OpenAI Contributor/User to Functions Managed Identity (if not created via YML)
 
 ## GitHub Actions Setup
 
