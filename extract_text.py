@@ -1,9 +1,11 @@
 #import base64
 import logging
 import os
-#import re
 import shutil
-#from xmlrpc import client
+import tempfile
+from urllib.parse import urlparse
+import requests
+import zipfile
 from docx import Document
 import docx2txt
 import pdfplumber
@@ -11,25 +13,17 @@ from pdf2image import convert_from_path
 from PIL import Image
 from io import BytesIO
 import contextlib
-import tempfile
-from urllib.parse import urlparse
-import requests
-import zipfile
 from azure.ai.vision.imageanalysis import ImageAnalysisClient
-#from azure.ai.vision.imageanalysis.models import VisualFeatures
 from azure.core.credentials import AzureKeyCredential
-#from azure.core.exceptions import HttpResponseError
-from azure.identity import DefaultAzureCredential
-import json
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-#from azure.ai.documentintelligence import DocumentIntelligenceClient
-from azure.core.credentials import AzureKeyCredential
-#from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
 from openai import AzureOpenAI 
 from datetime import datetime, timedelta
 from azure.storage.blob import (BlobServiceClient, generate_blob_sas, BlobSasPermissions)
 import time
 import uuid
+import json
+
+
 
 def get_gpt5_client():
     gpt5_endpoint = os.getenv("GPT5_ENDPOINT", "").strip()
@@ -424,7 +418,7 @@ def extract_file_info(file_path, ocr_text_threshold=50):
             except ValueError as exc:
                 print(f"Failed to extract Word document content: {exc}")
                 result["Summary"] = "Unable to process Word document."
-                logging.error(f"Failed to extract Word document content: {exc}")
+                logging.warning(f"Failed to extract Word document content: {exc}")
                 return result
             finally:
                 shutil.rmtree(img_dir, ignore_errors=True)
@@ -500,6 +494,7 @@ def extract_file_info(file_path, ocr_text_threshold=50):
     # Convert result dict to string for analysis
     text_for_analysis = json.dumps(result, ensure_ascii=False, indent=2)
     return analyze_text(text_for_analysis)
+
 
 
 # def analyze_image(image_source):
@@ -651,9 +646,8 @@ def analyze_image(image_url: str) -> str:
         
         response = response.choices[0].message.content # + "\n" + "Input tokens used: " + str(response.usage.prompt_tokens) + "\n" + "Output tokens used: " + str(response.usage.completion_tokens)
         response = json.loads(response)
-        logging.info(f'Image analysis full response: {response}')
         cleaned_response = {k: v for k, v in response.items() if v != "None"}
-        logging.info(f'Image analysis cleaned response: {cleaned_response}')
+        #logging.info(f'Image analysis cleaned response: {cleaned_response}')
         return json.dumps(cleaned_response, ensure_ascii=False, indent=2)
         
     except Exception:
@@ -752,11 +746,8 @@ def upload_and_get_sas(account_url: str, blob_name: str, local_file: str, expiry
 
 
 
-file_path = "https://staiclaimsauto001.blob.core.windows.net/emailattachments/20251003154607_photos.docx?sp=r&st=2025-10-04T11:03:40Z&se=2025-10-11T19:18:40Z&spr=https&sv=2024-11-04&sr=b&sig=%2FvFXazh2nLE%2BAy0ovcVQTNexNcFRWaP7YznxQZZkt9M%3D"
-# file_path = "https://staiclaimsauto001.blob.core.windows.net/emailattachments/photos.docx?sp=r&st=2025-10-02T21:43:34Z&se=2025-11-03T06:58:34Z&spr=https&sv=2024-11-04&sr=b&sig=OyKOvaKeZSGZ9UDgxG7ACs6WRYQTanB%2F4LHW2%2BLU5qc%3D"
-# file_path = "https://staiclaimsauto001.blob.core.windows.net/emailattachments/INV160_FIRTH_SCAFFOLDING_LTD.pdf?sp=r&st=2025-10-03T11:03:49Z&se=2025-10-03T19:18:49Z&spr=https&sv=2024-11-04&sr=b&sig=VWAWiykJQhjfS45e2eI%2B8gR1tlgYAiilrRoVX05C8NU%3D"
-# message_text = "Hi Here’s the invoice from FIRTH SCAFFOLDING LTD for the work they provided. Please pay this in a timely fashion. Thank you for your business. FIRTH SCAFFOLDING LTD Invoice: INV160 Total: £1,026.00 Due: 29 Sep 2025 "
-# print("\n")   
+#file_path = "https://staiclaimsauto001.blob.core.windows.net/emailattachments/20251003154607_photos.docx?sp=r&st=2025-10-04T11:03:40Z&se=2025-10-11T19:18:40Z&spr=https&sv=2024-11-04&sr=b&sig=%2FvFXazh2nLE%2BAy0ovcVQTNexNcFRWaP7YznxQZZkt9M%3D"
+file_path = "/emailattachments/20251003154607_photos.docx"
 print(extract_file_info(file_path))
 
 

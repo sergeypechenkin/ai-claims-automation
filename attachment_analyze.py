@@ -1,5 +1,6 @@
 #extract_text.py v2
 #import base64
+from ast import If
 import logging
 import os
 #import re
@@ -78,6 +79,7 @@ def get_gpt5_client():
         "model_name": gpt5_model_name
     }
 def get_ai_services_client():
+    
     endpoint = os.getenv("AI_SERVICES_ENDPOINT", "").strip()
     key = os.getenv("AI_SERVICES_KEY", "").strip()
 
@@ -100,3 +102,43 @@ def get_ai_services_client():
 
     client = ImageAnalysisClient(endpoint=endpoint, credential=credential)
     return client
+def generate_blob_sas_url(container_name: str, blob_URI: str, expiry_hours: int = 1) -> str:
+    """Generate a SAS URL for a blob with read permissions."""
+    account_url = os.getenv("STORAGE_ACCOUNT_BLOB_ENDPOINT", "").strip()
+    if not account_url:
+        try:
+            with open("local.settings.json", "r") as fh:
+                settings = json.load(fh)["Values"]
+            account_url = account_url or settings.get("STORAGE_ACCOUNT_BLOB_ENDPOINT", "")
+        except FileNotFoundError:
+            pass
+
+    if not account_url:
+        raise RuntimeError("STORAGE_ACCOUNT_BLOB_ENDPOINT is missing")
+
+    if not blob_URI.startswith("http"):
+        blob_URI = account_url + blob_URI
+
+    parsed_url = urlparse(blob_URI)
+    blob_name = parsed_url.path.lstrip(f'/{container_name}/')
+
+    blob_service_client = BlobServiceClient(account_url=account_url, credential=DefaultAzureCredential())
+    blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+
+    user_delegation_key = blob_service_client.get_user_delegation_key(
+        key_start_time=datetime.utcnow(),
+        key_expiry_time=datetime.utcnow() + timedelta(hours=expiry_hours)
+    )
+
+    if blob_service_client.account_name is not None:
+        sas_token = generate_blob_sas(
+            account_name=blob_service_client.account_name,
+            container_name=container_name,
+            blob_name=blob_name,
+            user_delegation_key=user_delegation_key,
+            expiry_time=datetime.utcnow() + timedelta(hours=expiry_hours)
+        )
+    else:
+        raise RuntimeError("Account name could not be determined from BlobServiceClient.")
+
+    return f"{blob_URI}?{sas_token}"
