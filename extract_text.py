@@ -599,11 +599,11 @@ def _clean_text_for_analysis(text: str) -> str:
 def analyze_text(text: str) -> str:
     # Clean the text before analysis
     print(f"Text for GPT-5 analysis before clearance: {text}")
-    logging.info(f'Text for GPT-5 analysis before clearance: {text}')
+    logging.info(f'----------Text for GPT-5 analysis before clearance: {text}')
     text = _clean_text_for_analysis(text)
     print(f"Cleaned text for analysis: {text}")
-    logging.info(f'Cleaned text for analysis: {text}')
-    
+    logging.info(f'----------Cleaned text for analysis: {text}')
+
     try:
         cfg = get_gpt5_client()
         client = cfg["client"]
@@ -620,7 +620,7 @@ def analyze_text(text: str) -> str:
 
     try:
         token_count = count_tokens(model_name, (prompt+text))
-        logging.info(f'Text analysis. Prompt + text token count: {token_count}')
+        logging.info(f'----------Text analysis. Prompt + text token count: {token_count}')
         response = client.chat.completions.create(
             messages=[
                 {
@@ -656,9 +656,16 @@ def analyze_image(image_url: str) -> str:
     Analyze image using GPT-5 by providing an image URL.
     This function expects a public/HTTPS image URL.
     """
-    logging.info(f'Analyzing image URL: {image_url}')
+    logging.info(f'-----------------Analyzing image URL: {image_url}')
+    image_data = _to_image_bytes(image_url)
+    print(f"Image size: {len(image_data)} bytes")
+    if len(image_data) < 100000:
+        print("Warning: Image is probably a logo or icon, skipping OCR.")
+        logging.warning("----------Image is probably a logo or icon, skipping OCR.")
+        return ""
     if not _is_remote_path(image_url):
         raise ValueError("analyze_image expects an HTTP(S) URL")
+
 
     try:
         cfg = get_gpt5_client()
@@ -692,7 +699,7 @@ def analyze_image(image_url: str) -> str:
         response = response.choices[0].message.content # + "\n" + "Input tokens used: " + str(response.usage.prompt_tokens) + "\n" + "Output tokens used: " + str(response.usage.completion_tokens)
         response = json.loads(response)
         cleaned_response = {k: v for k, v in response.items() if v != "None"}
-        logging.info(f'Image analysis cleaned response: {cleaned_response}')
+        logging.info(f'----------Image analysis cleaned response: {cleaned_response}')
         return str(json.dumps(cleaned_response, ensure_ascii=False, indent=2))
         
     except Exception:
