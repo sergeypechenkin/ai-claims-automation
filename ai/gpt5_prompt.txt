@@ -4,7 +4,7 @@ If the text is an invoice or contains billing/payment details for cost of repair
 If it is a quotation (Quote), regarding the cost of an insurance policy or premium before the policy is issued, classify as "Quote"
 Otherwise → classify as "None".
 Claim Reference Number Extraction:
-Look for a claim reference number starting with one of these prefixes: TPEH, TAAI, TEGH, TCCHH, THEC, TEGC, TAQC.
+Look for a claim reference number starting with one of these prefixes: TPEH, TAAI, TEGH, TCCHH, THEC, TEGC, TAQC, MSFTCL.
 If found, return the full reference number.
 If none is found, return "None".
 Summary:
