@@ -568,9 +568,42 @@ def count_tokens(model_name: str, text: str) -> int:
         approx = max(1, int(len(text) / 4))
         return approx
     return len(text.split())
+def _clean_text_for_analysis(text: str) -> str:
+    """
+    Remove cid: image references and clean up malformed link patterns from text.
+    
+    Examples of patterns to remove:
+    - ["cid:image002.png@01DC36AF.99E09040"]
+    - ["https://example.com"]
+    - Standalone cid: references
+    """
+    import re
+    
+    # Remove ["cid:..."] patterns
+    text = re.sub(r'\[\\?"cid:[^]]+\\?"\]', '', text)
+    
+    # Remove ["https://..."] and ["http://..."] patterns
+    text = re.sub(r'\[\\?"https?://[^]]+\\?"\]', '', text)
+    
+    # Remove standalone cid: references (without brackets)
+    text = re.sub(r'\\?"cid:[^\s"]+\\?"', '', text)
+    
+    # Clean up multiple consecutive newlines
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    
+    # Clean up multiple consecutive spaces
+    text = re.sub(r' {2,}', ' ', text)
+    
+    return text.strip()
+
 def analyze_text(text: str) -> str:
-    print(f"Text for GPT-5 analysis: {text}")
-    logging.info(f'Text for GPT-5 analysis: {text[:100]}')
+    # Clean the text before analysis
+    print(f"Text for GPT-5 analysis before clearance: {text}")
+    logging.info(f'Text for GPT-5 analysis before clearance: {text[:100]}')
+    text = _clean_text_for_analysis(text)
+    print(f"Cleaned text for analysis: {text}")
+    logging.info(f'Cleaned text for analysis: {text[:100]}')
+    
     try:
         cfg = get_gpt5_client()
         client = cfg["client"]
