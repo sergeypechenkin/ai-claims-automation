@@ -651,20 +651,29 @@ def analyze_text(text: str) -> str:
             
     except Exception:
         return str(response)
+def _is_image_large_enough(image_url: str, min_bytes: int = 100_000) -> bool:
+    try:
+        head = requests.head(image_url, timeout=10)
+    except requests.RequestException as exc:
+        logging.warning("HEAD request failed for %s: %s", image_url, exc)
+        return False
+    size = head.headers.get("Content-Length")
+    if size is None:
+        logging.warning("Missing Content-Length for %s", image_url)
+        return False
+    try:
+        return int(size) >= min_bytes
+    except ValueError:
+        logging.warning("Invalid Content-Length for %s: %s", image_url, size)
+        return False
+
 def analyze_image(image_url: str) -> str:
-    """
-    Analyze image using GPT-5 by providing an image URL.
-    This function expects a public/HTTPS image URL.
-    """
-    logging.info(f'-----------------Analyzing image URL: {image_url}')
-    image_data = _to_image_bytes(image_url)
-    print(f"Image size: {len(image_data)} bytes")
-    if len(image_data) < 100000:
-        print("Warning: Image is probably a logo or icon, skipping OCR.")
-        logging.warning("----------Image is probably a logo or icon, skipping OCR.")
+    if not _is_image_large_enough(image_url):
+        logging.info("Image %s skipped: below size threshold.", image_url)
         return ""
-    if not _is_remote_path(image_url):
-        raise ValueError("analyze_image expects an HTTP(S) URL")
+    logging.info(f'-----------------Analyzing image URL: {image_url}')
+
+
 
 
     try:

@@ -8,7 +8,7 @@ Look for a claim reference number starting with one of these prefixes: TPEH, TAA
 If found, return the full reference number.
 If none is found, return "None".
 Summary:
-Combine and condense the key points from all Summaries into a single concise summary (1-2 sentences). Mention total amount if any payment information found. Avoid mentioning what is absent.
+Combine and condense the key points from all Summaries into a single concise summary (1-2 sentences). Mention total amount if any payment information found. Avoid mentioning what is absent or not present.
 Output Format (JSON, always use this format):
 {
   "DocumentType": "Invoice | Quote | None",
