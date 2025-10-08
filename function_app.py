@@ -40,7 +40,7 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
         sender = (data.get('sender') or '').strip()
         subject = (data.get('subject') or '').strip()
         body_text = (data.get('bodyText') or '').strip()
-        text = "Subject: " + subject + "\n\n" + "Text: " + body_text
+        email_text = "Subject: " + subject + "\n\n" + "Text: " + body_text
         email_blob_uri = data.get('emailBlobUri')
         attachment_uris: List[str] = data.get('attachmentUris', [])
 
@@ -52,7 +52,7 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
             )
 
         processed = []
-        processed.append(("Email:", text))
+        #processed.append(("Email:", text))
         for att in attachment_uris:
             logging.info(f'--|| Function ||--cycle Processing attachment: {att}')
             blob_name = att.lstrip('/')  # normalize if path starts with /
@@ -65,10 +65,15 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
 
         processed_text = '\n\n'.join(str(item) for item in processed)
         logging.info(f'--|| Function ||-- Processed all attachments, text for analysis: {processed_text}')  # Log first 500 chars
-        resp = analyze_text(processed_text)
-        
-        print("--|| Function ||-- Analysis result: ","/n", resp)
-        logging.info(f'--|| Function ||-- Analysis result: {resp}')
+        resp_att = analyze_text(processed_text)
+        print("--|| Function ||-- All Attachments Analysis result: ","/n", resp_att)
+        logging.info(f'--|| Function ||-- All Attachments Analysis result: {resp_att}')
+        resp_email = analyze_text(email_text)
+        print("--|| Function ||-- Email Analysis result: ","/n", resp_email)
+        logging.info(f'--|| Function ||-- Email Analysis result: {resp_email}')
+
+        resp = analyze_text("Email summary: " + resp_email + "\n\n Attachments summary: " + resp_att)
+        logging.info(f'--|| Function ||-- Final combined analysis result: {resp}')
 
 
         return func.HttpResponse(json.dumps(resp, indent=2), status_code=200, mimetype="application/json")

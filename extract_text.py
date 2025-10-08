@@ -568,9 +568,42 @@ def count_tokens(model_name: str, text: str) -> int:
         approx = max(1, int(len(text) / 4))
         return approx
     return len(text.split())
+def _clean_text_for_analysis(text: str) -> str:
+    """
+    Remove cid: image references and clean up malformed link patterns from text.
+    
+    Examples of patterns to remove:
+    - ["cid:image002.png@01DC36AF.99E09040"]
+    - ["https://example.com"]
+    - Standalone cid: references
+    """
+    import re
+    
+    # Remove ["cid:..."] patterns
+    text = re.sub(r'\[\\?"cid:[^]]+\\?"\]', '', text)
+    
+    # Remove ["https://..."] and ["http://..."] patterns
+    text = re.sub(r'\[\\?"https?://[^]]+\\?"\]', '', text)
+    
+    # Remove standalone cid: references (without brackets)
+    text = re.sub(r'\\?"cid:[^\s"]+\\?"', '', text)
+    
+    # Clean up multiple consecutive newlines
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    
+    # Clean up multiple consecutive spaces
+    text = re.sub(r' {2,}', ' ', text)
+    
+    return text.strip()
+
 def analyze_text(text: str) -> str:
-    print(f"Text for GPT-5 analysis: {text}")
-    logging.info(f'Text for GPT-5 analysis: {text[:100]}')
+    # Clean the text before analysis
+    print(f"Text for GPT-5 analysis before clearance: {text}")
+    logging.info(f'----------Text for GPT-5 analysis before clearance: {text}')
+    text = _clean_text_for_analysis(text)
+    print(f"Cleaned text for analysis: {text}")
+    logging.info(f'----------Cleaned text for analysis: {text}')
+
     try:
         cfg = get_gpt5_client()
         client = cfg["client"]
@@ -587,7 +620,7 @@ def analyze_text(text: str) -> str:
 
     try:
         token_count = count_tokens(model_name, (prompt+text))
-        logging.info(f'Text analysis. Prompt + text token count: {token_count}')
+        logging.info(f'----------Text analysis. Prompt + text token count: {token_count}')
         response = client.chat.completions.create(
             messages=[
                 {
@@ -608,16 +641,40 @@ def analyze_text(text: str) -> str:
         logging.error("GPT-5 chat completion failed: %s", exc)
         return f"GPT-5 completion failed: {exc}"
 
-    logging.info(f'Text analysis response: {response.choices[0].message.content}')
-    return str(response.choices[0].message.content)
+    try:
+            
+            response = response.choices[0].message.content # + "\n" + "Input tokens used: " + str(response.usage.prompt_tokens) + "\n" + "Output tokens used: " + str(response.usage.completion_tokens)
+            response = json.loads(response)
+            cleaned_response = {k: v for k, v in response.items() if v != "None"}
+            logging.info(f'Text analysis cleaned response: {cleaned_response}')
+            return str(json.dumps(cleaned_response, ensure_ascii=False, indent=2))
+            
+    except Exception:
+        return str(response)
+def _is_image_large_enough(image_url: str, min_bytes: int = 100_000) -> bool:
+    try:
+        head = requests.head(image_url, timeout=10)
+    except requests.RequestException as exc:
+        logging.warning("HEAD request failed for %s: %s", image_url, exc)
+        return False
+    size = head.headers.get("Content-Length")
+    if size is None:
+        logging.warning("Missing Content-Length for %s", image_url)
+        return False
+    try:
+        return int(size) >= min_bytes
+    except ValueError:
+        logging.warning("Invalid Content-Length for %s: %s", image_url, size)
+        return False
+
 def analyze_image(image_url: str) -> str:
-    """
-    Analyze image using GPT-5 by providing an image URL.
-    This function expects a public/HTTPS image URL.
-    """
-    logging.info(f'Analyzing image URL: {image_url}')
-    if not _is_remote_path(image_url):
-        raise ValueError("analyze_image expects an HTTP(S) URL")
+    if not _is_image_large_enough(image_url):
+        logging.info("Image %s skipped: below size threshold.", image_url)
+        return ""
+    logging.info(f'-----------------Analyzing image URL: {image_url}')
+
+
+
 
     try:
         cfg = get_gpt5_client()
@@ -651,8 +708,8 @@ def analyze_image(image_url: str) -> str:
         response = response.choices[0].message.content # + "\n" + "Input tokens used: " + str(response.usage.prompt_tokens) + "\n" + "Output tokens used: " + str(response.usage.completion_tokens)
         response = json.loads(response)
         cleaned_response = {k: v for k, v in response.items() if v != "None"}
-        #logging.info(f'Image analysis cleaned response: {cleaned_response}')
-        return json.dumps(cleaned_response, ensure_ascii=False, indent=2)
+        logging.info(f'----------Image analysis cleaned response: {cleaned_response}')
+        return str(json.dumps(cleaned_response, ensure_ascii=False, indent=2))
         
     except Exception:
         return str(response)
