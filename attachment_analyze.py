@@ -1,3 +1,5 @@
+#this function is not in use, just started creating more clean extraction functions, not done yet
+
 #extract_text.py v2
 #import base64
 from ast import If
