@@ -264,6 +264,10 @@ resource conversionserviceConnection 'Microsoft.Web/connections@2016-06-01' = {
 var blobServiceEndpoint = string(storageAccount.properties.primaryEndpoints.blob)
 
 resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
+  dependsOn: [
+    functionApp  // ensure Function App (host key) exists before Logic App deployment
+    azureblobConnection // ensure the connection is fully created first
+  ]
   name: logicAppName
   location: location
   tags: {
@@ -531,92 +535,9 @@ resource stg 'Microsoft.Logic/workflows@2019-05-01' = {
             errorTime: '@utcNow()'
           }
         }
-        Generate_email_sas_uri: {
-          runAfter: {
-            Handle_success_response: [
-              'Succeeded'
-            ]
-          }
-          type: 'ApiConnection'
-          inputs: {
-            host: {
-              connection: {
-                name: '@parameters(\'$connections\')[\'azureblob\'][\'connectionId\']'
-              }
-            }
-            method: 'post'
-            path: '/v2/datasets/@{encodeURIComponent(encodeURIComponent(\'${blobServiceEndpoint}\'))}/CreateSharedLinkByPath'
-            queries: {
-              path: '@variables(\'emailBlobUri\')'
-              accessType: 'Read'
-              expiryTime: '@addHours(utcNow(), 24)'
-            }
-          }
-        }
-        Generate_attachment_sas_uris: {
-          runAfter: {
-            Generate_email_sas_uri: [
-              'Succeeded'
-            ]
-          }
-          type: 'InitializeVariable'
-          inputs: {
-            variables: [
-              {
-                name: 'attachmentSasUris'
-                type: 'Array'
-                value: []
-              }
-            ]
-          }
-        }
-        For_each_attachment_sas: {
-          runAfter: {
-            Generate_attachment_sas_uris: [
-              'Succeeded'
-            ]
-          }
-          foreach: '@variables(\'attachmentUris\')'
-          type: 'Foreach'
-          actions: {
-            Generate_attachment_sas: {
-              runAfter: {}
-              type: 'ApiConnection'
-              inputs: {
-                host: {
-                  connection: {
-                    name: '@parameters(\'$connections\')[\'azureblob\'][\'connectionId\']'
-                  }
-                }
-                method: 'post'
-                path: '/v2/datasets/@{encodeURIComponent(encodeURIComponent(\'${blobServiceEndpoint}\'))}/CreateSharedLinkByPath'
-                queries: {
-                  path: '@item()'
-                  accessType: 'Read'
-                  expiryTime: '@addHours(utcNow(), 24)'
-                }
-              }
-            }
-            Append_attachment_sas: {
-              runAfter: {
-                Generate_attachment_sas: [
-                  'Succeeded'
-                ]
-              }
-              type: 'AppendToArrayVariable'
-              inputs: {
-                name: 'attachmentSasUris'
-                value: {
-                  fileName: '@last(split(item(), \'/\'))'
-                  sasUrl: '@body(\'Generate_attachment_sas\')?[\'WebUrl\']'
-                }
-              }
-            }
-          }
-        }
 Post_adaptive_card_to_teams: {
   runAfter: {
-    For_each_attachment_sas: [
+    Handle_success_response: [
       'Succeeded'
     ]
   }
@@ -672,27 +593,13 @@ Post_adaptive_card_to_teams: {
       "text": "@{coalesce(json(body('Call_function_process_email'))?['Summary'], 'No summary available')}",
       "wrap": true,
       "spacing": "Small"
-    },
-    {
-      "type": "TextBlock",
-      "text": "📎 **Attachments:**",
-      "weight": "Bolder",
-      "spacing": "Medium",
-      "$when": "@{greater(length(variables('attachmentUris')), 0)}"
-    },
-    {
-      "type": "TextBlock",
-      "text": "@{join(createArray(forEach(variables('attachmentSasUris'), concat('• [', item().fileName, '](', item().sasUrl, ')'))), '\n')}",
-      "wrap": true,
-      "spacing": "Small",
-      "$when": "@{greater(length(variables('attachmentUris')), 0)}"
     }
   ],
   "actions": [
     {
       "type": "Action.OpenUrl",
-      "title": "📧 View Original Email",
-      "url": "@{body('Generate_email_sas_uri')?['WebUrl']}"
+      "title": "Open Function App",
+      "url": "https://${functionApp.properties.defaultHostName}"
     }
   ]
 }
@@ -769,6 +676,7 @@ resource azureblobConnection 'Microsoft.Web/connections@2016-06-01' = {
     }
   }
   dependsOn: [
+    storageAccount
     emailMessagesContainer
     emailAttachmentsContainer
   ]
