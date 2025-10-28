@@ -598,7 +598,7 @@ Post_adaptive_card_to_teams: {
   "actions": [
     {
       "type": "Action.OpenUrl",
-      "title": "Open Function App",
+      "title": "Open Claim Document",
       "url": "https://${functionApp.properties.defaultHostName}"
     }
   ]
