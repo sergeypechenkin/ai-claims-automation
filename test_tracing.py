@@ -9,8 +9,8 @@ from unittest.mock import patch
 def load_function_app_module():
     os.environ.pop("APPLICATIONINSIGHTS_CONNECTION_STRING", None)
     fake_extract_text = types.ModuleType("extract_text")
-    fake_extract_text.extract_file_info = lambda _uri: "mock-file-info"
-    fake_extract_text.analyze_text = lambda _text: "mock-analysis"
+    fake_extract_text.extract_file_info = lambda uri: "mock-file-info"
+    fake_extract_text.analyze_text = lambda text: "mock-analysis"
     sys.modules["extract_text"] = fake_extract_text
     sys.modules.pop("function_app", None)
     return importlib.import_module("function_app")
