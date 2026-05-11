@@ -9,6 +9,7 @@ param appnamePrefix string
 
 @description('The name of the storage account.')
 param storageAccountName string
+param storageAccountName2 string
 
 param gpt5_deployment string 
 param gpt5_model string 
@@ -54,11 +55,40 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   }
 }
 
+// Create storage account
+resource storageAccount2 'Microsoft.Storage/storageAccounts@2023-01-01' = {
+  name: storageAccountName2
+  location: location
+  sku: {
+    name: 'Standard_LRS'
+  }
+  kind: 'StorageV2'
+  properties: {
+    supportsHttpsTrafficOnly: true
+    minimumTlsVersion: 'TLS1_2'
+    allowSharedKeyAccess: true  // Enable account key (shared key)
+    allowBlobPublicAccess: false // Keep blob public access disabled
+    publicNetworkAccess: 'Enabled' // Enable network access for Function App
+    networkAcls: {
+      defaultAction: 'Allow' // Allow access from Azure services
+      bypass: 'AzureServices' // Allow Azure services to bypass network rules
+    }
+  }
+}
+
 // Create 'deployments' blob container
 resource deploymentsContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
   name: '${storageAccount.name}/default/deployments'
   properties: {
     publicAccess: 'None'
+  }
+}
+
+// Create 'deployments' blob container
+resource deploymentsContainer2 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = {
+  name: '${storageAccount2.name}/default/deployments'
+  properties: {
+    publicAccess: 'Blob'
   }
 }
 
