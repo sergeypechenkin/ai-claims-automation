@@ -23,7 +23,7 @@ def _configure_tracing() -> None:
     try:
         configure_azure_monitor(connection_string=app_insights_connection_string)
     except Exception:
-        logging.exception("Failed to configure Azure Monitor OpenTelemetry exporter.")
+        logging.exception("Failed to configure Azure Monitor OpenTelemetry exporter. Tracing will be disabled.")
 
 
 _configure_tracing()
@@ -76,9 +76,9 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
             #processed.append(("Email:", text))
             for att in attachment_uris:
                 with tracer.start_as_current_span("process_email.attachment") as attachment_span:
-                    attachment_span.set_attribute("attachment.uri", att)
-                    logging.info(f'--|| Function ||--cycle Processing attachment: {att}')
                     blob_name = att.lstrip('/')  # normalize if path starts with /
+                    attachment_span.set_attribute("attachment.name", blob_name)
+                    logging.info(f'--|| Function ||--cycle Processing attachment: {att}')
                     image_processing_result = extract_file_info(att)
                     logging.info(f'--|| Function ||-- cycle extracted result for attachment {att}: {image_processing_result}')
                     processed.append((blob_name, image_processing_result))
@@ -108,7 +108,6 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
             return func.HttpResponse(json.dumps({"error": "Internal server error", "details": str(ex)}),
                                      status_code=500, mimetype="application/json")
     
-
 
 
 

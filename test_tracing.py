@@ -16,7 +16,7 @@ def load_function_app_module():
     return importlib.import_module("function_app")
 
 
-class TracingConfigurationTests(unittest.TestCase):
+class TracingConfigurationTest(unittest.TestCase):
     def test_configures_exporter_when_connection_string_is_set(self):
         function_app = load_function_app_module()
 
@@ -38,4 +38,3 @@ class TracingConfigurationTests(unittest.TestCase):
             function_app._configure_tracing()
 
         configure_mock.assert_not_called()
-
