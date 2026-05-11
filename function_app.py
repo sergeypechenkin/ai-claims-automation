@@ -27,8 +27,9 @@ def _configure_tracing() -> None:
         logging.exception("Failed to configure Azure Monitor OpenTelemetry exporter. Tracing will be disabled.")
 
 
-def _sanitize_span_attribute(value: str, max_len: int = 128) -> str:
-    return re.sub(r"[^a-zA-Z0-9._/-]", "_", value)[:max_len]
+def _sanitize_span_attribute(value: str) -> str:
+    """Sanitize span attribute values to avoid leaking raw user-controlled data."""
+    return re.sub(r"[^a-zA-Z0-9._/-]", "_", value)[:128]
 
 
 _configure_tracing()
@@ -113,6 +114,5 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
             return func.HttpResponse(json.dumps({"error": "Internal server error", "details": str(ex)}),
                                      status_code=500, mimetype="application/json")
     
-
 
 
