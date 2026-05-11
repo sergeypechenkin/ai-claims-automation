@@ -11,3 +11,4 @@ pillow
 azure-ai-vision-imageanalysis
 pyodbc
 requests
+azure-monitor-opentelemetry
