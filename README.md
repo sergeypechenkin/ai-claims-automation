@@ -160,6 +160,8 @@ appSettingsKeyValuePairs: {
 
 Monitor your function app with these KQL queries:
 
+> OpenTelemetry tracing is enabled in the Python function app and exported through `APPLICATIONINSIGHTS_CONNECTION_STRING`.
+
 ```kusto
 // Function execution count
 requests
