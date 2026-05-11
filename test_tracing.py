@@ -34,7 +34,6 @@ class TestTracingConfiguration(unittest.TestCase):
         function_app = load_function_app_module()
 
         with patch.object(function_app, "configure_azure_monitor") as configure_mock:
-            os.environ.pop("APPLICATIONINSIGHTS_CONNECTION_STRING", None)
             function_app._configure_tracing()
 
         configure_mock.assert_not_called()

@@ -84,7 +84,7 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
                 with tracer.start_as_current_span("process_email.attachment") as attachment_span:
                     blob_name = att.lstrip('/')  # normalize if path starts with /
                     attachment_span.set_attribute("attachment.name", _sanitize_span_attribute(blob_name))
-                    logging.info(f'--|| Function ||--cycle Processing attachment: {att}')
+                    logging.info(f'--|| Function ||--cycle Processing attachment: {blob_name}')
                     image_processing_result = extract_file_info(att)
                     logging.info(f'--|| Function ||-- cycle extracted result for attachment {att}: {image_processing_result}')
                     processed.append((blob_name, image_processing_result))
@@ -114,5 +114,4 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
             return func.HttpResponse(json.dumps({"error": "Internal server error", "details": str(ex)}),
                                      status_code=500, mimetype="application/json")
     
-
 
