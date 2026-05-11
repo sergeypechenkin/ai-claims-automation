@@ -17,6 +17,27 @@ def load_function_app_module():
 
 
 class TestTracingConfiguration(unittest.TestCase):
+    def setUp(self):
+        self._original_connection_string = os.environ.get("APPLICATIONINSIGHTS_CONNECTION_STRING")
+        self._original_extract_text_module = sys.modules.get("extract_text")
+        self._original_function_app_module = sys.modules.get("function_app")
+
+    def tearDown(self):
+        if self._original_connection_string is None:
+            os.environ.pop("APPLICATIONINSIGHTS_CONNECTION_STRING", None)
+        else:
+            os.environ["APPLICATIONINSIGHTS_CONNECTION_STRING"] = self._original_connection_string
+
+        if self._original_extract_text_module is None:
+            sys.modules.pop("extract_text", None)
+        else:
+            sys.modules["extract_text"] = self._original_extract_text_module
+
+        if self._original_function_app_module is None:
+            sys.modules.pop("function_app", None)
+        else:
+            sys.modules["function_app"] = self._original_function_app_module
+
     def test_configures_exporter_when_connection_string_is_set(self):
         function_app = load_function_app_module()
 

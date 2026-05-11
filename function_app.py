@@ -28,7 +28,7 @@ def _configure_tracing() -> None:
 
 
 def _sanitize_span_attribute(value: str) -> str:
-    """Sanitize span attribute values to avoid leaking raw user-controlled data."""
+    """Sanitize span attribute values and cap them to 128 chars for safe telemetry metadata."""
     return re.sub(r"[^a-zA-Z0-9._/-]", "_", value)[:128]
 
 
@@ -83,8 +83,9 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
             for att in attachment_uris:
                 with tracer.start_as_current_span("process_email.attachment") as attachment_span:
                     blob_name = att.lstrip('/')  # normalize if path starts with /
-                    attachment_span.set_attribute("attachment.name", _sanitize_span_attribute(blob_name))
-                    logging.info(f'--|| Function ||--cycle Processing attachment: {blob_name}')
+                    attachment_name = os.path.basename(blob_name)
+                    attachment_span.set_attribute("attachment.name", _sanitize_span_attribute(attachment_name))
+                    logging.info(f'--|| Function ||--cycle Processing attachment: {attachment_name}')
                     image_processing_result = extract_file_info(att)
                     logging.info(f'--|| Function ||-- cycle extracted result for attachment {att}: {image_processing_result}')
                     processed.append((blob_name, image_processing_result))
@@ -95,10 +96,8 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
             processed_text = '\n\n'.join(str(item) for item in processed)
             logging.info(f'--|| Function ||-- Processed all attachments, text for analysis: {processed_text}')  # Log first 500 chars
             resp_att = analyze_text(processed_text)
-            print("--|| Function ||-- All Attachments Analysis result: ","\n", resp_att)
             logging.info(f'--|| Function ||-- All Attachments Analysis result: {resp_att}')
             resp_email = analyze_text(email_text)
-            print("--|| Function ||-- Email Analysis result: ","\n", resp_email)
             logging.info(f'--|| Function ||-- Email Analysis result: {resp_email}')
 
             resp = analyze_text("Email summary: " + resp_email + "\n\n Attachments summary: " + resp_att)
@@ -114,4 +113,3 @@ def process_email(req: func.HttpRequest) -> func.HttpResponse:
             return func.HttpResponse(json.dumps({"error": "Internal server error", "details": str(ex)}),
                                      status_code=500, mimetype="application/json")
     
-
