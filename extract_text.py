@@ -644,6 +644,15 @@ def analyze_text(text: str) -> str:
     try:
             
             response = response.choices[0].message.content # + "\n" + "Input tokens used: " + str(response.usage.prompt_tokens) + "\n" + "Output tokens used: " + str(response.usage.completion_tokens)
+            # Strip markdown code fences (```json ... ```) that GPT sometimes wraps around JSON
+            stripped = response.strip()
+            if stripped.startswith('```'):
+                # Remove opening fence (e.g. ```json or ```)
+                stripped = stripped.split('\n', 1)[1] if '\n' in stripped else stripped[3:]
+                # Remove closing fence
+                if stripped.rstrip().endswith('```'):
+                    stripped = stripped.rstrip()[:-3].rstrip()
+                response = stripped
             response = json.loads(response)
             cleaned_response = {k: v for k, v in response.items() if v != "None"}
             logging.info(f'Text analysis cleaned response: {cleaned_response}')
