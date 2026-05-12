@@ -1,0 +1,42 @@
+name: Validate AI Foundry - What-If Preview
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'ai/**'
+
+env:
+  AI_RESOURCE_GROUP: rg-ai-foundry
+  AI_LOCATION: 'Sweden Central'
+  HUB_NAME: 'ai-foundry-hub-swc'
+  PROJECT_NAME: 'ai-foundry-proj-swc'
+
+jobs:
+  validate-ai:
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Validate Bicep Templates
+        run: |
+          az deployment group validate \
+            --resource-group "$AI_RESOURCE_GROUP" \
+            --template-file ai/aih.bicep \
+            --parameters ai/aih.bicepparam \
+            --parameters location="$AI_LOCATION" hubName="$HUB_NAME" projectName="$PROJECT_NAME"
+
+      - name: What-If Preview
+        run: |
+          az deployment group what-if \
+            --resource-group "$AI_RESOURCE_GROUP" \
+            --template-file ai/aih.bicep \
+            --parameters ai/aih.bicepparam \
+            --parameters location="$AI_LOCATION" hubName="$HUB_NAME" projectName="$PROJECT_NAME"
