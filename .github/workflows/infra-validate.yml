@@ -1,0 +1,44 @@
+name: Validate Infra - What-If Preview
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'infra/**'
+
+env:
+  AZURE_RESOURCE_GROUP: 'rg-ai-claims-automation'
+  AZURE_LOCATION: 'North Europe'
+  SQL_ADMIN_LOGIN: ${{ secrets.SQLADMINLOGIN }}
+  SQL_ADMIN_PASSWORD: ${{ secrets.SQLADMINPASSWORD }}
+
+jobs:
+  validate-infrastructure:
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+    - name: 'Checkout'
+      uses: actions/checkout@v4
+
+    - name: 'Login to Azure'
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: 'Validate Bicep Templates'
+      run: |
+        az deployment group validate \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+          --template-file infra/main.bicep \
+          --parameters infra/main.bicepparam \
+          --parameters sqlAdminLogin=$SQL_ADMIN_LOGIN sqlAdminPassword=$SQL_ADMIN_PASSWORD \
+          --parameters gpt5_deployment=${{ secrets.AI_GPT_5_DEPLOYMENT }} gpt5_model=${{ secrets.AI_GPT_5_CHAT_MODEL }} gpt5_endpoint=${{ secrets.AI_GPT_5_CHAT_ENDPOINT }}
+
+    - name: 'What-If Preview'
+      run: |
+        az deployment group what-if \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+          --template-file infra/main.bicep \
+          --parameters infra/main.bicepparam \
+          --parameters sqlAdminLogin=$SQL_ADMIN_LOGIN sqlAdminPassword=$SQL_ADMIN_PASSWORD \
+          --parameters gpt5_deployment=${{ secrets.AI_GPT_5_DEPLOYMENT }} gpt5_model=${{ secrets.AI_GPT_5_CHAT_MODEL }} gpt5_endpoint=${{ secrets.AI_GPT_5_CHAT_ENDPOINT }}
