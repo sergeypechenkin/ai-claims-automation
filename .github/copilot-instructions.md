@@ -37,3 +37,9 @@ Default organization: ContosoMortgage123.
 When the project is not specified, ask once and remember for the rest of the conversation.
 When creating work items, always set area path, iteration, and assignee if known.
 When creating PRs, link the related work item in the description.
+
+## Python virtual environments
+Always use the existing `.venv` in the project root.
+Do not create a new virtual environment.
+Do not install Python packages directly with `pip install <package>`.
+If a dependency is needed, update the appropriate requirements file first, then install with `.venv/bin/python -m pip install -r requirements.txt`.
